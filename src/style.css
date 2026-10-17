@@ -69,7 +69,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 10px 24px;
   background: #0f141a;
   border-bottom: 1px solid #2d3748;
   flex-shrink: 0;
@@ -78,43 +78,44 @@ body {
 .logo-area {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .logo-icon {
-  font-size: 24px;
+  font-size: 30px;
 }
 
 .logo-area h1 {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.5px;
 }
 
 .logo-area h1 span {
   color: var(--accent-gold);
-  font-size: 13px;
-  font-weight: normal;
-  background: rgba(245, 158, 11, 0.15);
-  padding: 2px 6px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.18);
+  padding: 3px 8px;
   border-radius: 4px;
 }
 
 .header-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .deck-count-badge, .current-turn-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 8px;
+  padding: 6px 14px;
   background: #1e2633;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 15px;
   border: 1px solid #334155;
+  font-weight: 500;
 }
 
 .current-turn-badge {
@@ -131,8 +132,8 @@ body {
 }
 
 .spinner {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background-color: #3b82f6;
   animation: pulse 1.2s infinite ease-in-out;
@@ -146,15 +147,16 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .bot-select-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #94a3b8;
+  gap: 8px;
+  font-size: 15px;
+  color: #cbd5e1;
+  font-weight: 500;
 }
 
 .bot-select-wrap select {
@@ -162,8 +164,8 @@ body {
   color: #f8fafc;
   border: 1px solid #475569;
   border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: 14px;
   cursor: pointer;
   outline: none;
 }
@@ -171,8 +173,8 @@ body {
 /* ================== 플레이어 카드 패널 ================== */
 .players-panel {
   display: flex;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 12px;
+  padding: 10px 24px;
   background: #161e27;
   border-bottom: 1px solid #263242;
   overflow-x: auto;
@@ -182,23 +184,23 @@ body {
 .player-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: 12px;
+  padding: 10px 18px;
   background: #1f2937;
-  border-radius: 8px;
-  border: 1px solid #374151;
-  min-width: 145px;
+  border-radius: 10px;
+  border: 1.5px solid #374151;
+  min-width: 170px;
   transition: all 0.2s ease;
 }
 
 .player-card.active {
   border-color: var(--accent-gold);
   background: #2b3749;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
 }
 
 .player-avatar {
-  font-size: 24px;
+  font-size: 28px;
 }
 
 .player-meta {
@@ -207,14 +209,15 @@ body {
 }
 
 .player-meta .p-name {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: #e5e7eb;
 }
 
 .player-meta .p-info {
-  font-size: 12px;
+  font-size: 13px;
   color: #9ca3af;
+  margin-top: 2px;
 }
 
 .player-card.active .player-meta .p-name {
@@ -236,20 +239,20 @@ body {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .board-header h2 {
-  font-size: 14px;
-  color: #94a3b8;
-  font-weight: 600;
+  font-size: 17px;
+  color: #cbd5e1;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .board-hint {
-  font-size: 12px;
-  color: #64748b;
+  font-size: 14px;
+  color: #94a3b8;
 }
 
 .board-container {
@@ -336,10 +339,10 @@ body {
 /* ================== 알림 배너 ================== */
 .notification-bar {
   display: none;
-  padding: 8px 16px;
-  font-size: 13px;
+  padding: 11px 24px;
+  font-size: 15px;
   text-align: center;
-  font-weight: 500;
+  font-weight: 600;
   animation: slideDown 0.2s ease-out;
 }
 
@@ -374,7 +377,7 @@ body {
 .player-dock {
   background: #17110c;
   border-top: 3px solid #3e2815;
-  padding: 10px 16px 14px;
+  padding: 12px 24px 18px;
   flex-shrink: 0;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
 }
@@ -383,25 +386,25 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
 
 .rack-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #d5c3b2;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f1e7dd;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-weight: normal;
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-weight: 600;
 }
 
 .badge-unmelded {
@@ -419,13 +422,13 @@ body {
 .dock-buttons {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .btn-group {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 /* 랙 바닥 (우드 스타일 받침대) */
@@ -511,18 +514,24 @@ body {
 
 /* ================== 버튼 스타일 ================== */
 .btn {
-  padding: 8px 16px;
+  padding: 10px 18px;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   transition: all 0.15s ease;
   outline: none;
+}
+
+.main-actions .btn {
+  padding: 11px 22px;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .btn-primary { background: #2563eb; color: white; }
@@ -531,7 +540,7 @@ body {
 .btn-secondary { background: #374151; color: #f3f4f6; }
 .btn-secondary:hover { background: #4b5563; }
 
-.btn-sub { background: #2e261f; color: #f2e8dc; border: 1px solid #4a3d31; }
+.btn-sub { background: #2e261f; color: #f2e8dc; border: 1px solid #4a3d31; font-size: 14px; }
 .btn-sub:hover { background: #3f342a; }
 
 .btn-success { background: #059669; color: white; }
@@ -547,10 +556,11 @@ body {
   background: #1e293b;
   color: #cbd5e1;
   border: 1px solid #334155;
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border-radius: 50%;
+  font-size: 16px;
 }
 .btn-icon:hover { background: #334155; }
 
