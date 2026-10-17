@@ -10,6 +10,8 @@ export interface NetworkMessage {
     | 'ACTION_END_TURN'
     | 'ACTION_RESET'
     | 'TURN_ERROR'
+    | 'LEAVE_ROOM'
+    | 'ROOM_CLOSED'
     | 'CHAT';
   senderId: string;
   senderName: string;
@@ -285,6 +287,27 @@ export class MultiplayerManager {
     if (this.hostConnection && this.hostConnection.open) {
       this.hostConnection.send(msg);
     }
+  }
+
+  /**
+   * 방 나가기 처리
+   */
+  leaveRoom(): void {
+    if (this.isHost) {
+      this.broadcast({
+        type: 'ROOM_CLOSED',
+        senderId: this.myPeerId,
+        senderName: this.myName,
+        payload: { reason: '방장이 방을 종료했습니다.' },
+      });
+    } else {
+      this.sendMessageToHost({
+        type: 'LEAVE_ROOM',
+        senderId: this.myPeerId,
+        senderName: this.myName,
+      });
+    }
+    this.disconnect();
   }
 
   disconnect(): void {

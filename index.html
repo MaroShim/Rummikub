@@ -27,6 +27,10 @@
             <span class="spinner" id="turn-spinner"></span>
             <span id="turn-player-name">플레이어 턴</span>
           </div>
+          <div id="online-room-badge" class="online-room-badge hidden">
+            <span class="badge-dot"></span>
+            <span id="online-room-text">방 #123456</span>
+          </div>
         </div>
 
         <div class="header-actions">
@@ -46,6 +50,9 @@
           </button>
           <button id="btn-online-join" class="btn btn-secondary" title="초대받은 방 번호로 참가">
             🚪 참가하기
+          </button>
+          <button id="btn-leave-room" class="btn btn-danger hidden" title="온라인 방 나가기 (1인용으로 복귀)">
+            🚪 방 나가기
           </button>
           <button id="btn-fullscreen" class="btn btn-icon" title="전체화면 전환">⛶</button>
           <button id="btn-new-game" class="btn btn-secondary" title="1인용 AI 새 게임">새 게임</button>

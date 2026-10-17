@@ -41,6 +41,9 @@ const playerNameDisplayEl = document.getElementById('player-name-display') as HT
 const btnPlayerName = document.getElementById('btn-player-name') as HTMLButtonElement;
 const btnOnlineCreate = document.getElementById('btn-online-create') as HTMLButtonElement;
 const btnOnlineJoin = document.getElementById('btn-online-join') as HTMLButtonElement;
+const btnLeaveRoom = document.getElementById('btn-leave-room') as HTMLButtonElement;
+const onlineRoomBadgeEl = document.getElementById('online-room-badge') as HTMLElement;
+const onlineRoomTextEl = document.getElementById('online-room-text') as HTMLElement;
 
 // 모달들
 const rulesModal = document.getElementById('rules-modal') as HTMLElement;
@@ -77,11 +80,30 @@ interface DragSource {
 }
 let currentDragSource: DragSource | null = null;
 
+function setOnlineUIState(isOnline: boolean, roomCode?: string): void {
+  isOnlineMode = isOnline;
+  if (isOnline) {
+    btnLeaveRoom.classList.remove('hidden');
+    btnOnlineCreate.classList.add('hidden');
+    btnOnlineJoin.classList.add('hidden');
+    btnNewGame.classList.add('hidden');
+    botSelectWrapEl.style.display = 'none';
+    onlineRoomBadgeEl.classList.remove('hidden');
+    onlineRoomTextEl.textContent = `방 #${roomCode || net.roomCode} (${net.isHost ? '방장' : '참가자'})`;
+  } else {
+    btnLeaveRoom.classList.add('hidden');
+    btnOnlineCreate.classList.remove('hidden');
+    btnOnlineJoin.classList.remove('hidden');
+    btnNewGame.classList.remove('hidden');
+    botSelectWrapEl.style.display = 'flex';
+    onlineRoomBadgeEl.classList.add('hidden');
+  }
+}
+
 // ================== 게임 초기화 (오프라인 1인용) ==================
 function initOfflineGame(): void {
-  isOnlineMode = false;
   myPlayerId = 'player-1';
-  botSelectWrapEl.style.display = 'flex';
+  setOnlineUIState(false);
 
   const botCount = parseInt(botCountSelectEl.value, 10) || 3;
   game.start(botCount);
@@ -530,9 +552,8 @@ function broadcastGameState(): void {
 // 게스트 메시지 수신 처리
 net.onMessageReceived = (msg: NetworkMessage) => {
   if (msg.type === 'START_GAME') {
-    isOnlineMode = true;
     myPlayerId = net.myPeerId;
-    botSelectWrapEl.style.display = 'none';
+    setOnlineUIState(true, net.roomCode);
 
     // 호스트가 보내준 게임 상태로 초기화
     game.board = msg.payload.board;
@@ -551,6 +572,7 @@ net.onMessageReceived = (msg: NetworkMessage) => {
 
     game.startTurn();
     modalJoinRoom.classList.add('hidden');
+    modalCreateRoom.classList.add('hidden');
     renderAll();
     showNotification('🎮 온라인 멀티플레이어 게임이 시작되었습니다!', 'success');
   } else if (msg.type === 'SYNC_BOARD') {
@@ -603,6 +625,18 @@ net.onMessageReceived = (msg: NetworkMessage) => {
       } else {
         handleTurnSuccess();
       }
+      broadcastGameState();
+      checkAndRunOnlineAiTurns();
+    }
+  } else if (msg.type === 'ROOM_CLOSED') {
+    showNotification(`⚠️ ${msg.payload?.reason || '방장이 방을 종료했습니다.'}`, 'error');
+    initOfflineGame();
+  } else if (msg.type === 'LEAVE_ROOM' && net.isHost) {
+    const leavingPlayer = game.players.find((p) => p.id === msg.senderId);
+    if (leavingPlayer) {
+      leavingPlayer.name = `${leavingPlayer.name} (봇 전환)`;
+      leavingPlayer.isAi = true;
+      showNotification(`👤 ${msg.senderName}님이 퇴장하여 AI 봇으로 전환되었습니다.`, 'info');
       broadcastGameState();
       checkAndRunOnlineAiTurns();
     }
@@ -667,7 +701,14 @@ btnOnlineCreate.addEventListener('click', async () => {
     showNotification(`방 생성 오류: ${err.message || err}`, 'error');
   }
 });
-btnCloseCreateModal.addEventListener('click', () => modalCreateRoom.classList.add('hidden'));
+btnCloseCreateModal.addEventListener('click', () => {
+  if (confirm('대기실을 닫고 방 생성을 취소하시겠습니까?')) {
+    net.leaveRoom();
+    setOnlineUIState(false);
+    modalCreateRoom.classList.add('hidden');
+    showNotification('방 생성이 취소되었습니다.', 'info');
+  }
+});
 
 // 방 코드 복사
 btnCopyCode.addEventListener('click', () => {
@@ -766,6 +807,7 @@ btnStartOnlineGame.addEventListener('click', () => {
   });
 
   modalCreateRoom.classList.add('hidden');
+  setOnlineUIState(true, net.roomCode);
   renderAll();
   showNotification('🚀 온라인 멀티플레이어 게임이 시작되었습니다!', 'success');
 });
@@ -776,7 +818,13 @@ btnOnlineJoin.addEventListener('click', () => {
   joinStatusMsg.textContent = '';
   modalJoinRoom.classList.remove('hidden');
 });
-btnCloseJoinModal.addEventListener('click', () => modalJoinRoom.classList.add('hidden'));
+btnCloseJoinModal.addEventListener('click', () => {
+  if (isOnlineMode) {
+    net.leaveRoom();
+    setOnlineUIState(false);
+  }
+  modalJoinRoom.classList.add('hidden');
+});
 
 btnSubmitJoin.addEventListener('click', async () => {
   const code = inputJoinCode.value.trim();
@@ -790,11 +838,22 @@ btnSubmitJoin.addEventListener('click', async () => {
     joinStatusMsg.className = 'join-status loading';
     joinStatusMsg.textContent = '방에 접속 중입니다...';
     await net.joinRoom(code);
+    setOnlineUIState(true, code);
     joinStatusMsg.className = 'join-status success';
     joinStatusMsg.textContent = '연결 성공! 방장이 게임을 시작하기를 기다리는 중...';
   } catch (err: any) {
     joinStatusMsg.className = 'join-status error';
     joinStatusMsg.textContent = '방 연결 실패. 방 번호를 확인해 주세요.';
+  }
+});
+
+// 온라인 방 나가기 버튼
+btnLeaveRoom.addEventListener('click', () => {
+  if (confirm('정말 방에서 나가시겠습니까? 진행 중인 온라인 게임이 종료됩니다.')) {
+    net.leaveRoom();
+    setOnlineUIState(false);
+    initOfflineGame();
+    showNotification('온라인 방에서 퇴장했습니다. 1인용 모드로 전환되었습니다.', 'info');
   }
 });
 

@@ -571,6 +571,32 @@ body {
 .btn-info { background: #0284c7; color: white; }
 .btn-info:hover { background: #0369a1; }
 
+.btn-danger { background: #dc2626; color: white; }
+.btn-danger:hover { background: #b91c1c; }
+
+.online-room-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #6ee7b7;
+  font-weight: 600;
+}
+.online-room-badge.hidden { display: none !important; }
+
+.badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
 .btn-icon {
   background: #1e293b;
   color: #cbd5e1;
