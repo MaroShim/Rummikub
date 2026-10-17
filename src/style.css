@@ -171,12 +171,12 @@ body {
 .player-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: 10px;
+  padding: 8px 14px;
   background: #1f2937;
   border-radius: 8px;
   border: 1px solid #374151;
-  min-width: 130px;
+  min-width: 145px;
   transition: all 0.2s ease;
 }
 
@@ -187,7 +187,7 @@ body {
 }
 
 .player-avatar {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .player-meta {
@@ -196,13 +196,13 @@ body {
 }
 
 .player-meta .p-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: #e5e7eb;
 }
 
 .player-meta .p-info {
-  font-size: 11px;
+  font-size: 12px;
   color: #9ca3af;
 }
 
@@ -279,11 +279,11 @@ body {
   align-items: center;
   background: rgba(30, 41, 59, 0.85);
   border: 1.5px solid #475569;
-  border-radius: 8px;
-  padding: 4px;
-  gap: 3px;
-  min-height: 58px;
-  min-width: 50px;
+  border-radius: 9px;
+  padding: 5px;
+  gap: 4px;
+  min-height: 80px;
+  min-width: 60px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
 }
@@ -306,12 +306,12 @@ body {
   align-items: center;
   justify-content: center;
   border: 2px dashed #475569;
-  border-radius: 8px;
-  min-height: 58px;
-  min-width: 100px;
+  border-radius: 9px;
+  min-height: 80px;
+  min-width: 120px;
   color: #64748b;
-  font-size: 12px;
-  padding: 4px 12px;
+  font-size: 13px;
+  padding: 4px 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -422,16 +422,16 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  min-height: 124px;
+  min-height: 165px;
   background: linear-gradient(180deg, #2a1a0f 0%, #1a1009 100%);
   border: 2px solid #54371f;
   border-radius: 8px;
-  padding: 8px;
-  gap: 6px;
+  padding: 10px;
+  gap: 8px;
   box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6);
   position: relative;
   overflow-y: auto;
-  max-height: 150px;
+  max-height: 195px;
 }
 
 .rack-container.drag-over {
@@ -441,26 +441,26 @@ body {
 
 /* ================== 타일 디자인 (아이코닉 루미큐브) ================== */
 .tile {
-  width: 36px;
-  height: 50px;
+  width: 50px;
+  height: 70px;
   background: linear-gradient(145deg, #ffffff, #ece7d7);
   border: 1px solid var(--tile-border);
-  border-bottom: 3px solid #b8b19e;
-  border-radius: 5px;
+  border-bottom: 4px solid #b8b19e;
+  border-radius: 7px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: grab;
   position: relative;
-  box-shadow: 0 2px 4px var(--tile-shadow);
+  box-shadow: 0 3px 6px var(--tile-shadow);
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   flex-shrink: 0;
 }
 
 .tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.38);
 }
 
 .tile.dragging {
@@ -470,16 +470,16 @@ body {
 
 .tile-value {
   font-family: var(--tile-font);
-  font-size: 21px;
+  font-size: 29px;
   font-weight: 800;
   line-height: 1;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .tile-icon {
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 /* 타일 색상 변형 */
@@ -495,21 +495,21 @@ body {
 }
 
 .tile.is-joker .tile-value {
-  font-size: 24px;
+  font-size: 34px;
 }
 
 /* ================== 버튼 스타일 ================== */
 .btn {
-  padding: 6px 12px;
+  padding: 7px 14px;
   border: none;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   transition: all 0.15s ease;
   outline: none;
 }
@@ -626,8 +626,8 @@ body {
   justify-content: flex-end;
 }
 
-/* ================== 모바일 세로 모드 (max-width: 650px) ================== */
-@media (max-width: 650px) {
+/* ================== 모바일/태블릿 세로 모드 (max-width: 850px) ================== */
+@media (max-width: 850px) {
   .game-header {
     padding: 6px 10px;
     flex-wrap: wrap;
@@ -663,12 +663,31 @@ body {
   .board-hint {
     display: none;
   }
+  .board-set {
+    min-height: 54px;
+    min-width: 48px;
+    padding: 3px;
+    gap: 3px;
+    border-radius: 6px;
+  }
+  .new-set-zone {
+    min-height: 54px;
+    min-width: 90px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
   .tile {
     width: 32px;
     height: 45px;
+    border-bottom-width: 3px;
+    border-radius: 5px;
   }
   .tile-value {
     font-size: 18px;
+  }
+  .tile-icon {
+    font-size: 9px;
   }
   .tile.is-joker .tile-value {
     font-size: 20px;
@@ -684,6 +703,20 @@ body {
   .btn {
     padding: 5px 8px;
     font-size: 11px;
+  }
+  .player-card {
+    min-width: 115px;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .player-avatar {
+    font-size: 18px;
+  }
+  .player-meta .p-name {
+    font-size: 11px;
+  }
+  .player-meta .p-info {
+    font-size: 10px;
   }
   .rack-container {
     max-height: 120px;
