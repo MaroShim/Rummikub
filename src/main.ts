@@ -19,6 +19,7 @@ const notificationBarEl = document.getElementById('notification-bar') as HTMLEle
 const botCountSelectEl = document.getElementById('bot-count-select') as HTMLSelectElement;
 
 const btnNewGame = document.getElementById('btn-new-game') as HTMLButtonElement;
+const btnFullscreen = document.getElementById('btn-fullscreen') as HTMLButtonElement;
 const btnSortNum = document.getElementById('btn-sort-num') as HTMLButtonElement;
 const btnSortColor = document.getElementById('btn-sort-color') as HTMLButtonElement;
 const btnReset = document.getElementById('btn-reset') as HTMLButtonElement;
@@ -397,6 +398,60 @@ btnNewGame.addEventListener('click', () => {
   if (confirm('새 게임을 시작하시겠습니까?')) {
     initGame();
   }
+});
+
+// 전체화면 토글
+btnFullscreen.addEventListener('click', toggleFullscreen);
+
+function toggleFullscreen(): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const doc = document as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const docEl = document.documentElement as any;
+
+  const isFullscreen =
+    doc.fullscreenElement ||
+    doc.webkitFullscreenElement ||
+    doc.mozFullScreenElement ||
+    doc.msFullscreenElement;
+
+  if (!isFullscreen) {
+    if (docEl.requestFullscreen) {
+      docEl.requestFullscreen().catch(() => handleFullscreenFallback());
+    } else if (docEl.webkitRequestFullscreen) {
+      docEl.webkitRequestFullscreen();
+    } else if (docEl.msRequestFullscreen) {
+      docEl.msRequestFullscreen();
+    } else {
+      handleFullscreenFallback();
+    }
+  } else {
+    if (doc.exitFullscreen) {
+      doc.exitFullscreen();
+    } else if (doc.webkitExitFullscreen) {
+      doc.webkitExitFullscreen();
+    } else if (doc.msExitFullscreen) {
+      doc.msExitFullscreen();
+    }
+  }
+}
+
+function handleFullscreenFallback(): void {
+  showNotification(
+    '💡 아이폰 Safari는 [공유] ➡️ [홈 화면에 추가]를 하시면 브라우저 바 없는 100% 전체화면 앱으로 실행됩니다!',
+    'info'
+  );
+}
+
+// 전체화면 상태 변화 감지하여 아이콘 변경
+['fullscreenchange', 'webkitfullscreenchange'].forEach((event) => {
+  document.addEventListener(event, () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc = document as any;
+    const isFs = !!(doc.fullscreenElement || doc.webkitFullscreenElement);
+    btnFullscreen.textContent = isFs ? '✖' : '⛶';
+    btnFullscreen.title = isFs ? '전체화면 종료' : '전체화면 전환';
+  });
 });
 
 botCountSelectEl.addEventListener('change', () => {

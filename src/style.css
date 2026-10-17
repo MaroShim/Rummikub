@@ -35,10 +35,15 @@ body {
   background-color: var(--bg-color);
   color: #f3f4f6;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 #app {
@@ -620,3 +625,185 @@ body {
   display: flex;
   justify-content: flex-end;
 }
+
+/* ================== 모바일 세로 모드 (max-width: 650px) ================== */
+@media (max-width: 650px) {
+  .game-header {
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .logo-area h1 {
+    font-size: 15px;
+  }
+  .logo-icon {
+    font-size: 18px;
+  }
+  .header-info {
+    gap: 6px;
+  }
+  .deck-count-badge, .current-turn-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  .bot-select-wrap label {
+    display: none;
+  }
+  .btn-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  .board-wrapper {
+    padding: 8px 10px;
+  }
+  .board-header {
+    margin-bottom: 4px;
+  }
+  .board-hint {
+    display: none;
+  }
+  .tile {
+    width: 32px;
+    height: 45px;
+  }
+  .tile-value {
+    font-size: 18px;
+  }
+  .tile.is-joker .tile-value {
+    font-size: 20px;
+  }
+  .rack-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .dock-buttons {
+    justify-content: space-between;
+  }
+  .btn {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  .rack-container {
+    max-height: 120px;
+    min-height: 98px;
+    padding: 6px;
+    gap: 4px;
+  }
+}
+
+/* ================== 모바일 가로 모드 (아이폰/스마트폰 가로모드: max-height: 520px) ================== */
+@media (orientation: landscape) and (max-height: 520px) {
+  .game-header {
+    padding: 3px 8px;
+    gap: 4px;
+  }
+  .logo-area h1 {
+    font-size: 13px;
+  }
+  .logo-area h1 span {
+    display: none;
+  }
+  .deck-count-badge, .current-turn-badge {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+  .header-actions {
+    gap: 4px;
+  }
+  .bot-select-wrap select {
+    padding: 2px 4px;
+    font-size: 11px;
+  }
+  .btn-secondary {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+
+  .players-panel {
+    padding: 2px 8px;
+    gap: 6px;
+  }
+  .player-card {
+    min-width: 90px;
+    padding: 2px 6px;
+    gap: 4px;
+  }
+  .player-avatar {
+    font-size: 14px;
+  }
+  .player-meta .p-name {
+    font-size: 10px;
+  }
+  .player-meta .p-info {
+    font-size: 9px;
+  }
+
+  .board-wrapper {
+    padding: 4px 8px;
+  }
+  .board-header {
+    display: none; /* 가로모드에서 공간 절약을 위해 헤더 숨김 */
+  }
+  .board-container {
+    min-height: 100px;
+    padding: 6px;
+    gap: 8px;
+  }
+
+  /* 타일 크기 콤팩트화 */
+  .tile {
+    width: 27px;
+    height: 38px;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+  }
+  .tile-value {
+    font-size: 15px;
+  }
+  .tile-icon {
+    font-size: 7px;
+  }
+  .tile.is-joker .tile-value {
+    font-size: 16px;
+  }
+
+  .board-set {
+    min-height: 42px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .new-set-zone {
+    min-height: 42px;
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+
+  .player-dock {
+    padding: 4px 8px 6px;
+  }
+  .rack-controls {
+    margin-bottom: 3px;
+    gap: 4px;
+  }
+  .rack-title {
+    font-size: 11px;
+  }
+  .badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+  .btn {
+    padding: 3px 6px;
+    font-size: 10px;
+    gap: 2px;
+  }
+  .rack-container {
+    min-height: 44px;
+    max-height: 82px;
+    padding: 4px;
+    gap: 4px;
+  }
+}
+

@@ -2,7 +2,10 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>루미큐브 (Rummikub Web)</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -35,6 +38,7 @@
               <option value="3" selected>3명 (총 4인)</option>
             </select>
           </div>
+          <button id="btn-fullscreen" class="btn btn-icon" title="전체화면 전환">⛶</button>
           <button id="btn-new-game" class="btn btn-secondary">새 게임</button>
           <button id="btn-rules" class="btn btn-icon" title="규칙 보기">❓</button>
         </div>
