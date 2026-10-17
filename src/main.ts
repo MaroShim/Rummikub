@@ -1,12 +1,18 @@
 import { RummikubGame } from './core/game.ts';
 import { RummikubAI } from './core/ai.ts';
-import { Tile, TileSet } from './core/types.ts';
-import { validateTileSet } from './core/validator.ts';
+import { Tile, TileSet, Player } from './core/types.ts';
+import { validateTileSet, validateBoard } from './core/validator.ts';
+import { MultiplayerManager, NetworkMessage, RoomParticipant } from './network/multiplayer.ts';
 
-// 게임 인스턴스
+// 게임 및 네트워크 인스턴스
 const game = new RummikubGame();
+const net = new MultiplayerManager();
 
-// DOM 참조
+let isOnlineMode = false;
+let myPlayerId = 'player-1';
+let isProcessingTurn = false;
+
+// DOM 참조: 기본 헤더 및 게임 UI
 const deckCountEl = document.getElementById('deck-count') as HTMLElement;
 const turnPlayerNameEl = document.getElementById('turn-player-name') as HTMLElement;
 const currentTurnBadgeEl = document.getElementById('current-turn-badge') as HTMLElement;
@@ -17,7 +23,9 @@ const handCountEl = document.getElementById('hand-count') as HTMLElement;
 const meldStatusEl = document.getElementById('meld-status') as HTMLElement;
 const notificationBarEl = document.getElementById('notification-bar') as HTMLElement;
 const botCountSelectEl = document.getElementById('bot-count-select') as HTMLSelectElement;
+const botSelectWrapEl = document.getElementById('bot-select-wrap') as HTMLElement;
 
+// DOM 참조: 액션 버튼들
 const btnNewGame = document.getElementById('btn-new-game') as HTMLButtonElement;
 const btnFullscreen = document.getElementById('btn-fullscreen') as HTMLButtonElement;
 const btnSortNum = document.getElementById('btn-sort-num') as HTMLButtonElement;
@@ -26,9 +34,38 @@ const btnReset = document.getElementById('btn-reset') as HTMLButtonElement;
 const btnDraw = document.getElementById('btn-draw') as HTMLButtonElement;
 const btnEndTurn = document.getElementById('btn-end-turn') as HTMLButtonElement;
 const btnRules = document.getElementById('btn-rules') as HTMLButtonElement;
+
+// DOM 참조: 온라인 & 닉네임 관련
+const playerNameDisplayEl = document.getElementById('player-name-display') as HTMLElement;
+const btnPlayerName = document.getElementById('btn-player-name') as HTMLButtonElement;
+const btnOnlineCreate = document.getElementById('btn-online-create') as HTMLButtonElement;
+const btnOnlineJoin = document.getElementById('btn-online-join') as HTMLButtonElement;
+
+// 모달들
 const rulesModal = document.getElementById('rules-modal') as HTMLElement;
 const btnCloseModal = document.getElementById('btn-close-modal') as HTMLButtonElement;
 const btnModalOk = document.getElementById('btn-modal-ok') as HTMLButtonElement;
+
+const modalName = document.getElementById('modal-name') as HTMLElement;
+const inputPlayerName = document.getElementById('input-player-name') as HTMLInputElement;
+const btnCloseNameModal = document.getElementById('btn-close-name-modal') as HTMLButtonElement;
+const btnSaveName = document.getElementById('btn-save-name') as HTMLButtonElement;
+
+const modalCreateRoom = document.getElementById('modal-create-room') as HTMLElement;
+const btnCloseCreateModal = document.getElementById('btn-close-create-modal') as HTMLButtonElement;
+const createdRoomCodeEl = document.getElementById('created-room-code') as HTMLElement;
+const btnCopyCode = document.getElementById('btn-copy-code') as HTMLButtonElement;
+const btnCopyLink = document.getElementById('btn-copy-link') as HTMLButtonElement;
+const participantCountEl = document.getElementById('participant-count') as HTMLElement;
+const participantListEl = document.getElementById('participant-list') as HTMLElement;
+const chkFillBots = document.getElementById('chk-fill-bots') as HTMLInputElement;
+const btnStartOnlineGame = document.getElementById('btn-start-online-game') as HTMLButtonElement;
+
+const modalJoinRoom = document.getElementById('modal-join-room') as HTMLElement;
+const btnCloseJoinModal = document.getElementById('btn-close-join-modal') as HTMLButtonElement;
+const inputJoinCode = document.getElementById('input-join-code') as HTMLInputElement;
+const btnSubmitJoin = document.getElementById('btn-submit-join') as HTMLButtonElement;
+const joinStatusMsg = document.getElementById('join-status-msg') as HTMLElement;
 
 // 드래그 중인 타일의 정보
 interface DragSource {
@@ -38,17 +75,34 @@ interface DragSource {
   tileId: string;
 }
 let currentDragSource: DragSource | null = null;
-let isProcessingTurn = false;
 
-// ================== 게임 초기화 ==================
-function initGame(): void {
+// ================== 게임 초기화 (오프라인 1인용) ==================
+function initOfflineGame(): void {
+  isOnlineMode = false;
+  myPlayerId = 'player-1';
+  botSelectWrapEl.style.display = 'flex';
+
   const botCount = parseInt(botCountSelectEl.value, 10) || 3;
   game.start(botCount);
+  // 내 이름 반영
+  if (game.players.length > 0) {
+    game.players[0].name = `${net.myName} (나)`;
+  }
   renderAll();
-  showNotification(`🎮 새 게임이 시작되었습니다! (봇 ${botCount}명)`, 'info');
+  showNotification(`🎮 1인용 게임이 시작되었습니다! (봇 ${botCount}명)`, 'info');
 }
 
 // ================== 렌더링 함수들 ==================
+function getMyPlayer(): Player {
+  const found = game.players.find((p) => p.id === myPlayerId);
+  return found || game.players[0];
+}
+
+function isMyTurn(): boolean {
+  if (game.isGameOver) return false;
+  return game.getCurrentPlayer().id === myPlayerId;
+}
+
 function renderAll(): void {
   renderHeader();
   renderPlayers();
@@ -61,12 +115,22 @@ function renderHeader(): void {
   deckCountEl.textContent = game.deck.length.toString();
   const current = game.getCurrentPlayer();
 
-  if (current.isAi) {
-    turnPlayerNameEl.textContent = `🤖 ${current.name} 생각 중...`;
-    currentTurnBadgeEl.classList.add('ai-turn');
+  if (isOnlineMode) {
+    if (current.id === myPlayerId) {
+      turnPlayerNameEl.textContent = `⭐ 내 턴 (${net.myName})! 타일을 내세요`;
+      currentTurnBadgeEl.className = 'current-turn-badge';
+    } else {
+      turnPlayerNameEl.textContent = `⏳ ${current.name} 차례 진행 중...`;
+      currentTurnBadgeEl.className = 'current-turn-badge ai-turn';
+    }
   } else {
-    turnPlayerNameEl.textContent = `👤 내 턴 (플레이어)`;
-    currentTurnBadgeEl.classList.remove('ai-turn');
+    if (current.isAi) {
+      turnPlayerNameEl.textContent = `🤖 ${current.name} 생각 중...`;
+      currentTurnBadgeEl.className = 'current-turn-badge ai-turn';
+    } else {
+      turnPlayerNameEl.textContent = `👤 내 턴 (${net.myName})`;
+      currentTurnBadgeEl.className = 'current-turn-badge';
+    }
   }
 }
 
@@ -76,15 +140,20 @@ function renderPlayers(): void {
 
   game.players.forEach((player) => {
     const card = document.createElement('div');
-    card.className = `player-card ${player.id === current.id ? 'active' : ''}`;
+    const isCurrent = player.id === current.id;
+    const isMe = player.id === myPlayerId;
+    card.className = `player-card ${isCurrent ? 'active' : ''}`;
 
-    const avatar = player.isAi ? '🤖' : '👤';
+    let avatar = '👤';
+    if (player.isAi) avatar = '🤖';
+    else if (isMe) avatar = '⭐';
+
     const meldBadge = player.hasInitialMeld ? '✓ 등록완료' : '미등록';
 
     card.innerHTML = `
       <div class="player-avatar">${avatar}</div>
       <div class="player-meta">
-        <span class="p-name">${player.name}</span>
+        <span class="p-name">${player.name}${isMe ? ' (나)' : ''}</span>
         <span class="p-info">${player.hand.length}장 | ${meldBadge}</span>
       </div>
     `;
@@ -108,7 +177,6 @@ function renderBoard(): void {
       setEl.className = 'board-set';
       setEl.dataset.setIndex = sIdx.toString();
 
-      // 세트 유효성 검사 및 시각 피드백
       const validation = validateTileSet(set);
       if (!validation.valid) {
         setEl.classList.add('invalid');
@@ -127,13 +195,12 @@ function renderBoard(): void {
         setEl.appendChild(tileEl);
       });
 
-      // 기존 세트에 드롭 이벤트 바인딩
       bindSetDropEvents(setEl, sIdx);
       boardContainerEl.appendChild(setEl);
     });
   }
 
-  // '새 세트 만들기' 드롭 존 항상 표시
+  // 새 세트 드롭존
   const newSetZone = document.createElement('div');
   newSetZone.className = 'new-set-zone';
   newSetZone.textContent = '+ 새 세트 만들기';
@@ -143,10 +210,10 @@ function renderBoard(): void {
 
 function renderRack(): void {
   rackContainerEl.innerHTML = '';
-  const humanPlayer = game.players[0]; // 나
+  const me = getMyPlayer();
 
-  handCountEl.textContent = humanPlayer.hand.length.toString();
-  if (humanPlayer.hasInitialMeld) {
+  handCountEl.textContent = me.hand.length.toString();
+  if (me.hasInitialMeld) {
     meldStatusEl.className = 'badge badge-melded';
     meldStatusEl.textContent = '첫 등록 완료 (자유 조합 가능)';
   } else {
@@ -154,7 +221,7 @@ function renderRack(): void {
     meldStatusEl.textContent = '첫 등록 필요 (30점 이상)';
   }
 
-  humanPlayer.hand.forEach((tile, tIdx) => {
+  me.hand.forEach((tile, tIdx) => {
     const tileEl = createTileElement(tile, {
       location: 'rack',
       tileIndex: tIdx,
@@ -165,20 +232,20 @@ function renderRack(): void {
 }
 
 function updateActionControls(): void {
-  const isMyTurn = game.getCurrentPlayer().id === game.players[0].id && !isProcessingTurn;
+  const canPlay = isMyTurn() && !isProcessingTurn;
 
-  btnSortNum.disabled = !isMyTurn;
-  btnSortColor.disabled = !isMyTurn;
-  btnReset.disabled = !isMyTurn;
-  btnDraw.disabled = !isMyTurn;
-  btnEndTurn.disabled = !isMyTurn;
+  btnSortNum.disabled = !canPlay;
+  btnSortColor.disabled = !canPlay;
+  btnReset.disabled = !canPlay;
+  btnDraw.disabled = !canPlay;
+  btnEndTurn.disabled = !canPlay;
 }
 
 // ================== 타일 DOM 생성 ==================
 function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
   const el = document.createElement('div');
   el.className = `tile ${tile.isJoker ? 'is-joker' : `color-${tile.color}`}`;
-  el.draggable = !isProcessingTurn && game.getCurrentPlayer().id === game.players[0].id;
+  el.draggable = isMyTurn() && !isProcessingTurn;
   el.dataset.tileId = tile.id;
 
   const valueDisplay = tile.isJoker ? '☺' : tile.value.toString();
@@ -189,9 +256,8 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
     <div class="tile-icon">${iconDisplay}</div>
   `;
 
-  // 드래그 시작 이벤트
   el.addEventListener('dragstart', (e) => {
-    if (isProcessingTurn || game.getCurrentPlayer().id !== game.players[0].id) {
+    if (!isMyTurn() || isProcessingTurn) {
       e.preventDefault();
       return;
     }
@@ -222,79 +288,58 @@ function getSymbolForColor(color: string): string {
   }
 }
 
-// ================== 드래그 & 드롭 이벤트 바인딩 ==================
 function clearDragHoverStyles(): void {
   document.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
 }
 
-// 1. 기존 세트에 드롭
+// ================== 드래그 & 드롭 이벤트 바인딩 ==================
 function bindSetDropEvents(setEl: HTMLElement, targetSetIndex: number): void {
   setEl.addEventListener('dragover', (e) => {
     e.preventDefault();
     setEl.classList.add('drag-over');
   });
-
-  setEl.addEventListener('dragleave', () => {
-    setEl.classList.remove('drag-over');
-  });
-
+  setEl.addEventListener('dragleave', () => setEl.classList.remove('drag-over'));
   setEl.addEventListener('drop', (e) => {
     e.preventDefault();
     setEl.classList.remove('drag-over');
     if (!currentDragSource) return;
-
     handleDropOnSet(currentDragSource, targetSetIndex);
   });
 }
 
-// 2. 새 세트 영역에 드롭
 function bindNewSetDropEvents(newZoneEl: HTMLElement): void {
   newZoneEl.addEventListener('dragover', (e) => {
     e.preventDefault();
     newZoneEl.classList.add('drag-over');
   });
-
-  newZoneEl.addEventListener('dragleave', () => {
-    newZoneEl.classList.remove('drag-over');
-  });
-
+  newZoneEl.addEventListener('dragleave', () => newZoneEl.classList.remove('drag-over'));
   newZoneEl.addEventListener('drop', (e) => {
     e.preventDefault();
     newZoneEl.classList.remove('drag-over');
     if (!currentDragSource) return;
-
     handleDropOnNewSet(currentDragSource);
   });
 }
 
-// 3. 타일 랙에 드롭 (보드에서 다시 가져오기)
 rackContainerEl.addEventListener('dragover', (e) => {
   e.preventDefault();
   rackContainerEl.classList.add('drag-over');
 });
-
-rackContainerEl.addEventListener('dragleave', () => {
-  rackContainerEl.classList.remove('drag-over');
-});
-
+rackContainerEl.addEventListener('dragleave', () => rackContainerEl.classList.remove('drag-over'));
 rackContainerEl.addEventListener('drop', (e) => {
   e.preventDefault();
   rackContainerEl.classList.remove('drag-over');
   if (!currentDragSource) return;
-
   handleDropOnRack(currentDragSource);
 });
 
-// ================== 타일 이동 비즈니스 로직 ==================
 function handleDropOnSet(source: DragSource, targetSetIndex: number): void {
-  const player = game.players[0];
+  const me = getMyPlayer();
   let tileToMove: Tile | null = null;
 
   if (source.location === 'rack') {
-    // 랙에서 보드 세트로 이동
-    tileToMove = player.hand.splice(source.tileIndex, 1)[0];
+    tileToMove = me.hand.splice(source.tileIndex, 1)[0];
   } else if (source.location === 'board' && source.setIndex !== undefined) {
-    // 보드 세트 간 이동
     const sourceSet = game.board[source.setIndex];
     tileToMove = sourceSet.splice(source.tileIndex, 1)[0];
   }
@@ -307,11 +352,11 @@ function handleDropOnSet(source: DragSource, targetSetIndex: number): void {
 }
 
 function handleDropOnNewSet(source: DragSource): void {
-  const player = game.players[0];
+  const me = getMyPlayer();
   let tileToMove: Tile | null = null;
 
   if (source.location === 'rack') {
-    tileToMove = player.hand.splice(source.tileIndex, 1)[0];
+    tileToMove = me.hand.splice(source.tileIndex, 1)[0];
   } else if (source.location === 'board' && source.setIndex !== undefined) {
     const sourceSet = game.board[source.setIndex];
     tileToMove = sourceSet.splice(source.tileIndex, 1)[0];
@@ -326,77 +371,452 @@ function handleDropOnNewSet(source: DragSource): void {
 }
 
 function handleDropOnRack(source: DragSource): void {
-  const player = game.players[0];
-
+  const me = getMyPlayer();
   if (source.location === 'board' && source.setIndex !== undefined) {
     const sourceSet = game.board[source.setIndex];
     const tileToMove = sourceSet.splice(source.tileIndex, 1)[0];
     if (tileToMove) {
-      player.hand.push(tileToMove);
+      me.hand.push(tileToMove);
       game.cleanupEmptySets();
       renderAll();
     }
   }
 }
 
-// ================== 액션 버튼 핸들러 ==================
-// 정렬: 숫자별
+// ================== 정렬 및 조작 버튼 핸들러 ==================
 btnSortNum.addEventListener('click', () => {
-  game.sortHand(game.players[0], 'number');
+  game.sortHand(getMyPlayer(), 'number');
   renderRack();
 });
 
-// 정렬: 색상별
 btnSortColor.addEventListener('click', () => {
-  game.sortHand(game.players[0], 'color');
+  game.sortHand(getMyPlayer(), 'color');
   renderRack();
 });
 
-// 턴 원상복구
 btnReset.addEventListener('click', () => {
   game.resetTurn();
   renderAll();
-  showNotification('턴 시작 상태로 원상복구되었습니다.', 'info');
+  showNotification('이번 턴에 놓은 타일이 모두 원상복구되었습니다.', 'info');
 });
 
 // 타일 1장 뽑기 (Pass)
 btnDraw.addEventListener('click', () => {
-  if (isProcessingTurn) return;
-  const res = game.drawTile();
+  if (isProcessingTurn || !isMyTurn()) return;
+
+  if (isOnlineMode) {
+    if (net.isHost) {
+      const res = game.drawTile();
+      handleDrawOutcome(res);
+      broadcastGameState();
+      checkAndRunOnlineAiTurns();
+    } else {
+      // 게스트: 호스트에게 드로우 요청
+      net.sendMessageToHost({
+        type: 'ACTION_DRAW',
+        senderId: myPlayerId,
+        senderName: net.myName,
+      });
+      showNotification('타일 뽑기를 요청했습니다...', 'info');
+    }
+  } else {
+    // 오프라인
+    const res = game.drawTile();
+    handleDrawOutcome(res);
+    renderAll();
+    processAiTurns();
+  }
+});
+
+function handleDrawOutcome(res: { success: boolean; tile?: Tile; error?: string }): void {
   if (res.success && res.tile) {
     showNotification(`타일 1장을 뽑았습니다. [${res.tile.isJoker ? '조커' : `${res.tile.color} ${res.tile.value}`}]`, 'info');
   } else if (res.error) {
     showNotification(res.error, 'error');
   }
-  renderAll();
-  processAiTurns();
+}
+
+// 턴 확정
+btnEndTurn.addEventListener('click', () => {
+  if (isProcessingTurn || !isMyTurn()) return;
+
+  if (isOnlineMode) {
+    if (net.isHost) {
+      const res = game.endTurn();
+      if (!res.success) {
+        showNotification(`⚠️ ${res.error}`, 'error');
+        renderBoard();
+        return;
+      }
+      handleTurnSuccess();
+      broadcastGameState();
+      checkAndRunOnlineAiTurns();
+    } else {
+      // 게스트: 로컬 보드 검증 먼저 수행 후 호스트에게 전송
+      const validation = validateBoard(game.board);
+      if (!validation.valid) {
+        showNotification('⚠️ 보드에 유효하지 않은 세트가 있습니다. 규칙을 확인하세요.', 'error');
+        renderBoard();
+        return;
+      }
+
+      net.sendMessageToHost({
+        type: 'ACTION_END_TURN',
+        senderId: myPlayerId,
+        senderName: net.myName,
+        payload: {
+          board: game.board,
+          hand: getMyPlayer().hand,
+        },
+      });
+      showNotification('턴 완료 검증 요청 중...', 'info');
+    }
+  } else {
+    // 오프라인
+    const res = game.endTurn();
+    if (!res.success) {
+      showNotification(`⚠️ ${res.error}`, 'error');
+      renderBoard();
+      return;
+    }
+    handleTurnSuccess();
+    renderAll();
+    processAiTurns();
+  }
 });
 
-// 턴 확정 (유효성 검사 후 종료)
-btnEndTurn.addEventListener('click', () => {
-  if (isProcessingTurn) return;
-  const res = game.endTurn();
-  if (!res.success) {
-    showNotification(`⚠️ ${res.error}`, 'error');
-    renderBoard(); // invalid 세트 하이라이트 갱신
-    return;
-  }
-
+function handleTurnSuccess(): void {
   if (game.isGameOver) {
     showNotification(`🏆 축하합니다! ${game.winner?.name}님이 승리하셨습니다!`, 'success');
+  } else {
+    showNotification('턴을 확정했습니다! 다음 플레이어로 넘어갑니다.', 'success');
+  }
+}
+
+// ================== 온라인 네트워크 동기화 ==================
+function broadcastGameState(): void {
+  if (!net.isHost) return;
+
+  // 각 게스트에게 상태 전송 (각자의 패는 안전하게 본인 것만 full 전송)
+  net.participants.forEach((p) => {
+    const isMe = p.id === net.myPeerId;
+    if (isMe) return;
+
+    const payload = {
+      board: game.board,
+      deckCount: game.deck.length,
+      currentPlayerIndex: game.currentPlayerIndex,
+      isGameOver: game.isGameOver,
+      winner: game.winner,
+      players: game.players.map((pl) => ({
+        id: pl.id,
+        name: pl.name,
+        isAi: pl.isAi,
+        handCount: pl.hand.length,
+        hasInitialMeld: pl.hasInitialMeld,
+      })),
+      // 본인의 최신 핸드 전송
+      myHand: game.players.find((pl) => pl.id === p.id)?.hand || [],
+    };
+
+    net.sendTo(p.id, {
+      type: 'SYNC_BOARD',
+      senderId: net.myPeerId,
+      senderName: net.myName,
+      payload,
+    });
+  });
+
+  renderAll();
+}
+
+// 게스트 메시지 수신 처리
+net.onMessageReceived = (msg: NetworkMessage) => {
+  if (msg.type === 'START_GAME') {
+    isOnlineMode = true;
+    myPlayerId = net.myPeerId;
+    botSelectWrapEl.style.display = 'none';
+
+    // 호스트가 보내준 게임 상태로 초기화
+    game.board = msg.payload.board;
+    game.currentPlayerIndex = msg.payload.currentPlayerIndex;
+    game.deck = new Array(msg.payload.deckCount).fill({} as Tile);
+    game.isGameOver = false;
+    game.winner = null;
+
+    game.players = msg.payload.players.map((pl: any) => ({
+      id: pl.id,
+      name: pl.name,
+      isAi: pl.isAi,
+      hand: pl.id === myPlayerId ? msg.payload.myHand : new Array(pl.handCount).fill({} as Tile),
+      hasInitialMeld: pl.hasInitialMeld,
+    }));
+
+    game.startTurn();
+    modalJoinRoom.classList.add('hidden');
     renderAll();
+    showNotification('🎮 온라인 멀티플레이어 게임이 시작되었습니다!', 'success');
+  } else if (msg.type === 'SYNC_BOARD') {
+    // 실시간 보드 및 턴 동기화
+    game.board = msg.payload.board;
+    game.deck = new Array(msg.payload.deckCount).fill({} as Tile);
+    game.currentPlayerIndex = msg.payload.currentPlayerIndex;
+    game.isGameOver = msg.payload.isGameOver;
+    game.winner = msg.payload.winner;
+
+    game.players = msg.payload.players.map((pl: any) => ({
+      id: pl.id,
+      name: pl.name,
+      isAi: pl.isAi,
+      hand: pl.id === myPlayerId ? msg.payload.myHand : new Array(pl.handCount).fill({} as Tile),
+      hasInitialMeld: pl.hasInitialMeld,
+    }));
+
+    game.startTurn();
+    renderAll();
+
+    if (game.isGameOver) {
+      showNotification(`🏆 게임 종료! ${game.winner?.name}님이 승리했습니다!`, 'success');
+    }
+  } else if (msg.type === 'ACTION_DRAW' && net.isHost) {
+    // 호스트: 게스트의 드로우 처리
+    const guestPlayer = game.players.find((p) => p.id === msg.senderId);
+    if (guestPlayer && game.getCurrentPlayer().id === guestPlayer.id) {
+      game.drawTile();
+      broadcastGameState();
+      checkAndRunOnlineAiTurns();
+    }
+  } else if (msg.type === 'ACTION_END_TURN' && net.isHost) {
+    // 호스트: 게스트의 턴 확정 검증
+    const guestPlayer = game.players.find((p) => p.id === msg.senderId);
+    if (guestPlayer && game.getCurrentPlayer().id === guestPlayer.id) {
+      game.board = msg.payload.board;
+      guestPlayer.hand = msg.payload.hand;
+
+      const res = game.endTurn();
+      if (!res.success) {
+        // 검증 실패 시 호스트가 롤백 명령 전송
+        net.sendTo(guestPlayer.id, {
+          type: 'TURN_ERROR',
+          senderId: 'host',
+          senderName: '호스트',
+          payload: { error: res.error },
+        });
+        game.resetTurn();
+      } else {
+        handleTurnSuccess();
+      }
+      broadcastGameState();
+      checkAndRunOnlineAiTurns();
+    }
+  } else if (msg.type === 'TURN_ERROR') {
+    showNotification(`⚠️ ${msg.payload.error}`, 'error');
+    game.resetTurn();
+    renderAll();
+  }
+};
+
+async function checkAndRunOnlineAiTurns(): Promise<void> {
+  if (!net.isHost || !isOnlineMode || game.isGameOver) return;
+
+  while (game.getCurrentPlayer().isAi && !game.isGameOver) {
+    const bot = game.getCurrentPlayer();
+    renderHeader();
+    renderPlayers();
+
+    await RummikubAI.playTurn(game, bot);
+    broadcastGameState();
+
+    if (game.isGameOver) break;
+  }
+}
+
+// ================== 모달 및 이벤트 연결 ==================
+// 닉네임 관리
+function updatePlayerNameDisplay(): void {
+  playerNameDisplayEl.textContent = net.myName;
+}
+updatePlayerNameDisplay();
+
+btnPlayerName.addEventListener('click', () => {
+  inputPlayerName.value = net.myName;
+  modalName.classList.remove('hidden');
+});
+btnCloseNameModal.addEventListener('click', () => modalName.classList.add('hidden'));
+
+btnSaveName.addEventListener('click', () => {
+  const newName = inputPlayerName.value.trim();
+  if (newName) {
+    net.setPlayerName(newName);
+    updatePlayerNameDisplay();
+    if (!isOnlineMode && game.players.length > 0) {
+      game.players[0].name = `${newName} (나)`;
+      renderPlayers();
+    }
+    showNotification(`이름이 '${newName}'(으)로 저장되었습니다.`, 'success');
+  }
+  modalName.classList.add('hidden');
+});
+
+// 방 만들기 (호스트)
+btnOnlineCreate.addEventListener('click', async () => {
+  try {
+    showNotification('온라인 방 생성 중...', 'info');
+    const roomCode = await net.createRoom();
+    createdRoomCodeEl.textContent = roomCode;
+    renderParticipantList(net.participants);
+    modalCreateRoom.classList.remove('hidden');
+  } catch (err: any) {
+    showNotification(`방 생성 오류: ${err.message || err}`, 'error');
+  }
+});
+btnCloseCreateModal.addEventListener('click', () => modalCreateRoom.classList.add('hidden'));
+
+// 방 코드 복사
+btnCopyCode.addEventListener('click', () => {
+  navigator.clipboard.writeText(net.roomCode);
+  showNotification(`방 번호 [${net.roomCode}]가 클립보드에 복사되었습니다!`, 'success');
+});
+
+// 초대 링크 복사
+btnCopyLink.addEventListener('click', () => {
+  const url = `${window.location.origin}${window.location.pathname}?room=${net.roomCode}`;
+  navigator.clipboard.writeText(url);
+  showNotification('초대 링크가 복사되었습니다! 친구에게 공유하세요.', 'success');
+});
+
+// 호스트: 대기실 참가자 변경 감지
+net.onParticipantsChanged = (participants) => {
+  renderParticipantList(participants);
+};
+
+function renderParticipantList(participants: RoomParticipant[]): void {
+  participantCountEl.textContent = participants.length.toString();
+  participantListEl.innerHTML = '';
+
+  participants.forEach((p) => {
+    const li = document.createElement('li');
+    li.className = `participant-item ${p.id === net.myPeerId ? 'me' : ''}`;
+    li.innerHTML = `
+      <span>👤 ${p.name} ${p.id === net.myPeerId ? '(나)' : ''}</span>
+      ${p.isHost ? '<span class="host-tag">방장</span>' : '<span style="color:#94a3b8;font-size:12px;">참가자</span>'}
+    `;
+    participantListEl.appendChild(li);
+  });
+}
+
+// 호스트: 온라인 게임 시작 버튼
+btnStartOnlineGame.addEventListener('click', () => {
+  if (!net.isHost) return;
+
+  isOnlineMode = true;
+  myPlayerId = net.myPeerId;
+  botSelectWrapEl.style.display = 'none';
+
+  // 1. 호스트의 게임 인스턴스 초기화
+  game.board = [];
+  game.isGameOver = false;
+  game.winner = null;
+  game.start(0); // 덱 생성 및 셔플
+
+  // 2. 플레이어 목록 구성 (실제 참가자들)
+  game.players = net.participants.map((p) => ({
+    id: p.id,
+    name: p.name,
+    isAi: false,
+    hand: game.deck.splice(0, 14),
+    hasInitialMeld: false,
+  }));
+
+  // 3. 봇 추가 옵션이 켜져 있고 4인 미만이면 봇 채우기
+  if (chkFillBots.checked && game.players.length < 4) {
+    const needed = 4 - game.players.length;
+    for (let b = 1; b <= needed; b++) {
+      game.players.push({
+        id: `bot-${b}`,
+        name: `봇 ${b}`,
+        isAi: true,
+        hand: game.deck.splice(0, 14),
+        hasInitialMeld: false,
+      });
+    }
+  }
+
+  game.currentPlayerIndex = 0;
+  game.startTurn();
+
+  // 4. 모든 참가자에게 START_GAME 메시지 전송
+  net.participants.forEach((p) => {
+    if (p.id === net.myPeerId) return;
+    net.sendTo(p.id, {
+      type: 'START_GAME',
+      senderId: net.myPeerId,
+      senderName: net.myName,
+      payload: {
+        board: game.board,
+        deckCount: game.deck.length,
+        currentPlayerIndex: game.currentPlayerIndex,
+        players: game.players.map((pl) => ({
+          id: pl.id,
+          name: pl.name,
+          isAi: pl.isAi,
+          handCount: pl.hand.length,
+          hasInitialMeld: pl.hasInitialMeld,
+        })),
+        myHand: game.players.find((pl) => pl.id === p.id)?.hand || [],
+      },
+    });
+  });
+
+  modalCreateRoom.classList.add('hidden');
+  renderAll();
+  showNotification('🚀 온라인 멀티플레이어 게임이 시작되었습니다!', 'success');
+});
+
+// 방 참가하기 (게스트)
+btnOnlineJoin.addEventListener('click', () => {
+  inputJoinCode.value = '';
+  joinStatusMsg.textContent = '';
+  modalJoinRoom.classList.remove('hidden');
+});
+btnCloseJoinModal.addEventListener('click', () => modalJoinRoom.classList.add('hidden'));
+
+btnSubmitJoin.addEventListener('click', async () => {
+  const code = inputJoinCode.value.trim();
+  if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+    joinStatusMsg.className = 'join-status error';
+    joinStatusMsg.textContent = '6자리 숫자를 입력해 주세요.';
     return;
   }
 
-  showNotification('턴을 확정했습니다! 봇 차례로 넘어갑니다.', 'success');
-  renderAll();
-  processAiTurns();
+  try {
+    joinStatusMsg.className = 'join-status loading';
+    joinStatusMsg.textContent = '방에 접속 중입니다...';
+    await net.joinRoom(code);
+    joinStatusMsg.className = 'join-status success';
+    joinStatusMsg.textContent = '연결 성공! 방장이 게임을 시작하기를 기다리는 중...';
+  } catch (err: any) {
+    joinStatusMsg.className = 'join-status error';
+    joinStatusMsg.textContent = '방 연결 실패. 방 번호를 확인해 주세요.';
+  }
 });
 
-// 새 게임 버튼
+// 규칙 모달 열기/닫기
+btnRules.addEventListener('click', () => rulesModal.classList.remove('hidden'));
+btnCloseModal.addEventListener('click', () => rulesModal.classList.add('hidden'));
+btnModalOk.addEventListener('click', () => rulesModal.classList.add('hidden'));
+
+// 새 게임 버튼 (오프라인 1인용)
 btnNewGame.addEventListener('click', () => {
-  if (confirm('새 게임을 시작하시겠습니까?')) {
-    initGame();
+  if (confirm('새 1인용 게임을 시작하시겠습니까? (진행 중인 게임은 종료됩니다)')) {
+    net.disconnect();
+    initOfflineGame();
+  }
+});
+
+botCountSelectEl.addEventListener('change', () => {
+  if (!isOnlineMode) {
+    initOfflineGame();
   }
 });
 
@@ -404,9 +824,7 @@ btnNewGame.addEventListener('click', () => {
 btnFullscreen.addEventListener('click', toggleFullscreen);
 
 function toggleFullscreen(): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const doc = document as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const docEl = document.documentElement as any;
 
   const isFullscreen =
@@ -443,25 +861,14 @@ function handleFullscreenFallback(): void {
   );
 }
 
-// 전체화면 상태 변화 감지하여 아이콘 변경
 ['fullscreenchange', 'webkitfullscreenchange'].forEach((event) => {
   document.addEventListener(event, () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc = document as any;
     const isFs = !!(doc.fullscreenElement || doc.webkitFullscreenElement);
     btnFullscreen.textContent = isFs ? '✖' : '⛶';
     btnFullscreen.title = isFs ? '전체화면 종료' : '전체화면 전환';
   });
 });
-
-botCountSelectEl.addEventListener('change', () => {
-  initGame();
-});
-
-// 규칙 모달 열기/닫기
-btnRules.addEventListener('click', () => rulesModal.classList.remove('hidden'));
-btnCloseModal.addEventListener('click', () => rulesModal.classList.add('hidden'));
-btnModalOk.addEventListener('click', () => rulesModal.classList.add('hidden'));
 
 // 알림 배너
 let notificationTimeout: number | null = null;
@@ -472,11 +879,12 @@ function showNotification(msg: string, type: 'info' | 'error' | 'success' = 'inf
   if (notificationTimeout) clearTimeout(notificationTimeout);
   notificationTimeout = window.setTimeout(() => {
     notificationBarEl.classList.remove('active');
-  }, 4000);
+  }, 4500);
 }
 
-// ================== AI 턴 순차 진행 루프 ==================
+// 오프라인 AI 순차 진행
 async function processAiTurns(): Promise<void> {
+  if (isOnlineMode) return;
   isProcessingTurn = true;
   updateActionControls();
 
@@ -486,7 +894,6 @@ async function processAiTurns(): Promise<void> {
     renderPlayers();
 
     await RummikubAI.playTurn(game, bot);
-
     renderAll();
 
     if (game.isGameOver) {
@@ -499,5 +906,17 @@ async function processAiTurns(): Promise<void> {
   renderAll();
 }
 
-// 초기 실행
-initGame();
+// ================== URL 파라미터 자동 참가 체크 ==================
+function checkUrlRoomParam(): void {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomParam = urlParams.get('room');
+  if (roomParam && roomParam.length === 6) {
+    inputJoinCode.value = roomParam;
+    modalJoinRoom.classList.remove('hidden');
+    showNotification(`초대받은 방 번호 [${roomParam}]가 자동 입력되었습니다. '입장하기'를 누르세요!`, 'info');
+  }
+}
+
+// 최초 실행
+initOfflineGame();
+checkUrlRoomParam();

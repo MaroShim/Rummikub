@@ -30,7 +30,10 @@
         </div>
 
         <div class="header-actions">
-          <div class="bot-select-wrap">
+          <button id="btn-player-name" class="btn btn-sub" title="내 이름 변경">
+            <span id="player-name-display">플레이어</span> ✏️
+          </button>
+          <div class="bot-select-wrap" id="bot-select-wrap">
             <label for="bot-count-select">봇 인원:</label>
             <select id="bot-count-select">
               <option value="1">1명 (1:1)</option>
@@ -38,8 +41,14 @@
               <option value="3" selected>3명 (총 4인)</option>
             </select>
           </div>
+          <button id="btn-online-create" class="btn btn-primary" title="온라인 방을 만들어 친구 초대">
+            🌐 방 만들기
+          </button>
+          <button id="btn-online-join" class="btn btn-secondary" title="초대받은 방 번호로 참가">
+            🚪 참가하기
+          </button>
           <button id="btn-fullscreen" class="btn btn-icon" title="전체화면 전환">⛶</button>
-          <button id="btn-new-game" class="btn btn-secondary">새 게임</button>
+          <button id="btn-new-game" class="btn btn-secondary" title="1인용 AI 새 게임">새 게임</button>
           <button id="btn-rules" class="btn btn-icon" title="규칙 보기">❓</button>
         </div>
       </header>
@@ -130,6 +139,82 @@
           </div>
           <div class="modal-footer">
             <button id="btn-modal-ok" class="btn btn-primary">확인</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 플레이어 이름 설정 모달 -->
+      <div id="modal-name" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>👤 내 플레이어 이름 설정</h3>
+            <button id="btn-close-name-modal" class="btn-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p style="margin-bottom: 12px; color: #94a3b8;">게임 및 온라인 대기실에서 표시될 이름을 입력하세요:</p>
+            <input type="text" id="input-player-name" class="modal-input" maxlength="12" placeholder="이름 (최대 12자)" />
+          </div>
+          <div class="modal-footer">
+            <button id="btn-save-name" class="btn btn-primary">저장하기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 온라인 방 만들기(초대) 모달 -->
+      <div id="modal-create-room" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>🌐 온라인 방 생성 (초대하기)</h3>
+            <button id="btn-close-create-modal" class="btn-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="room-code-display">
+              <span class="code-label">방 번호 (6자리 코드):</span>
+              <div class="code-box">
+                <span id="created-room-code" class="code-number">------</span>
+                <button id="btn-copy-code" class="btn btn-sub" title="코드 복사">📋 번호 복사</button>
+                <button id="btn-copy-link" class="btn btn-sub" title="초대 링크 복사">🔗 링크 복사</button>
+              </div>
+            </div>
+
+            <div class="room-participants-wrap">
+              <h4>대기실 참가자 (<span id="participant-count">1</span>/4명)</h4>
+              <ul id="participant-list" class="participant-list">
+                <!-- 동적 참가자 목록 -->
+              </ul>
+            </div>
+
+            <div class="room-options">
+              <label class="checkbox-label">
+                <input type="checkbox" id="chk-fill-bots" checked />
+                <span>빈 자리는 AI 봇으로 채우기 (2~4인 풀 게임)</span>
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="btn-start-online-game" class="btn btn-success" style="font-size: 16px; padding: 10px 24px;">
+              🚀 게임 시작
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 온라인 방 참가하기 모달 -->
+      <div id="modal-join-room" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>🚪 온라인 방 참가하기</h3>
+            <button id="btn-close-join-modal" class="btn-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p style="margin-bottom: 12px; color: #94a3b8;">초대받은 6자리 방 번호를 입력하세요:</p>
+            <input type="text" id="input-join-code" class="modal-input" maxlength="6" placeholder="예: 482910" style="text-align: center; font-size: 24px; letter-spacing: 4px; font-weight: 700;" />
+            <div id="join-status-msg" class="join-status" style="margin-top: 10px; font-size: 14px; text-align: center;"></div>
+          </div>
+          <div class="modal-footer">
+            <button id="btn-submit-join" class="btn btn-primary" style="font-size: 16px; padding: 10px 24px;">
+              입장하기
+            </button>
           </div>
         </div>
       </div>

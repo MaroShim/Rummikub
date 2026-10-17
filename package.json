@@ -11,5 +11,8 @@
   "devDependencies": {
     "typescript": "^5.5.4",
     "vite": "^5.4.2"
+  },
+  "dependencies": {
+    "peerjs": "^1.5.5"
   }
 }
