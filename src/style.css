@@ -20,6 +20,17 @@
 
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --tile-font: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
+
+  /* 데스크톱 최적 대형 타일 치수 (너비 64px, 높이 90px) */
+  --tile-w: 64px;
+  --tile-h: 90px;
+  --tile-radius: 9px;
+  --tile-val-size: 38px;
+  --tile-icon-size: 16px;
+  --tile-joker-size: 42px;
+  --set-min-h: 104px;
+  --rack-min-h: 206px;
+  --rack-max-h: 245px;
 }
 
 * {
@@ -279,11 +290,11 @@ body {
   align-items: center;
   background: rgba(30, 41, 59, 0.85);
   border: 1.5px solid #475569;
-  border-radius: 9px;
+  border-radius: var(--tile-radius);
   padding: 6px;
   gap: 5px;
-  min-height: 88px;
-  min-width: 65px;
+  min-height: var(--set-min-h);
+  min-width: calc(var(--tile-w) + 12px);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
 }
@@ -306,8 +317,8 @@ body {
   align-items: center;
   justify-content: center;
   border: 2px dashed #475569;
-  border-radius: 9px;
-  min-height: 88px;
+  border-radius: var(--tile-radius);
+  min-height: var(--set-min-h);
   min-width: 140px;
   color: #64748b;
   font-size: 14px;
@@ -422,7 +433,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  min-height: 186px;
+  min-height: var(--rack-min-h);
   background: linear-gradient(180deg, #2a1a0f 0%, #1a1009 100%);
   border: 2px solid #54371f;
   border-radius: 10px;
@@ -431,7 +442,7 @@ body {
   box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6);
   position: relative;
   overflow-y: auto;
-  max-height: 225px;
+  max-height: var(--rack-max-h);
 }
 
 .rack-container.drag-over {
@@ -441,26 +452,26 @@ body {
 
 /* ================== 타일 디자인 (아이코닉 루미큐브) ================== */
 .tile {
-  width: 54px;
-  height: 75px;
+  width: var(--tile-w);
+  height: var(--tile-h);
   background: linear-gradient(145deg, #ffffff, #ece7d7);
   border: 1px solid var(--tile-border);
-  border-bottom: 4.5px solid #b8b19e;
-  border-radius: 8px;
+  border-bottom: 5px solid #b8b19e;
+  border-radius: var(--tile-radius);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: grab;
   position: relative;
-  box-shadow: 0 3px 6px var(--tile-shadow);
+  box-shadow: 0 4px 8px var(--tile-shadow);
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   flex-shrink: 0;
 }
 
 .tile:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
 }
 
 .tile.dragging {
@@ -470,14 +481,14 @@ body {
 
 .tile-value {
   font-family: var(--tile-font);
-  font-size: 32px;
+  font-size: var(--tile-val-size);
   font-weight: 800;
   line-height: 1;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .tile-icon {
-  font-size: 15px;
+  font-size: var(--tile-icon-size);
   line-height: 1;
   margin-top: 2px;
 }
@@ -495,7 +506,7 @@ body {
 }
 
 .tile.is-joker .tile-value {
-  font-size: 36px;
+  font-size: var(--tile-joker-size);
 }
 
 /* ================== 버튼 스타일 ================== */
@@ -624,6 +635,21 @@ body {
   margin-top: 18px;
   display: flex;
   justify-content: flex-end;
+}
+
+/* ================== 노트북 및 중간 해상도 데스크톱 (max-width: 1400px or max-height: 850px) ================== */
+@media screen and (min-width: 851px) and ((max-width: 1400px) or (max-height: 850px)) {
+  :root {
+    --tile-w: 54px;
+    --tile-h: 75px;
+    --tile-radius: 8px;
+    --tile-val-size: 32px;
+    --tile-icon-size: 14px;
+    --tile-joker-size: 36px;
+    --set-min-h: 88px;
+    --rack-min-h: 180px;
+    --rack-max-h: 215px;
+  }
 }
 
 /* ================== 모바일/태블릿 세로 모드 (max-width: 850px) ================== */
