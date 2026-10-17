@@ -29,6 +29,7 @@ const botSelectWrapEl = document.getElementById('bot-select-wrap') as HTMLElemen
 // DOM 참조: 액션 버튼들
 const btnNewGame = document.getElementById('btn-new-game') as HTMLButtonElement;
 const btnFullscreen = document.getElementById('btn-fullscreen') as HTMLButtonElement;
+const btnThemeToggle = document.getElementById('btn-theme-toggle') as HTMLButtonElement;
 const btnSortNum = document.getElementById('btn-sort-num') as HTMLButtonElement;
 const btnSortColor = document.getElementById('btn-sort-color') as HTMLButtonElement;
 const btnReset = document.getElementById('btn-reset') as HTMLButtonElement;
@@ -165,7 +166,7 @@ function renderPlayers(): void {
     const card = document.createElement('div');
     const isCurrent = player.id === current.id;
     const isMe = player.id === myPlayerId;
-    card.className = `player-card ${isCurrent ? 'active' : ''}`;
+    card.className = `player-card ${isCurrent ? 'active' : ''} ${player.isAi ? 'is-bot' : ''}`;
 
     let avatar = '👤';
     if (player.isAi) avatar = '🤖';
@@ -179,9 +180,10 @@ function renderPlayers(): void {
         beginner: '초급',
         intermediate: '중급',
         expert: '고급',
+        master: '최고급',
       };
       const label = diffLabelMap[player.difficulty] || player.difficulty;
-      diffBadge = `<span class="diff-tag ${player.difficulty}">${label}</span>`;
+      diffBadge = `<span class="diff-tag ${player.difficulty}" title="클릭하여 난이도 변경">${label} 🔄</span>`;
     }
 
     card.innerHTML = `
@@ -191,6 +193,28 @@ function renderPlayers(): void {
         <span class="p-info">${player.hand.length}장 | ${meldBadge}</span>
       </div>
     `;
+
+    // 봇 카드 클릭 시 난이도 한 단계 상승 (초급 -> 중급 -> 고급 -> 최고급 -> 초급)
+    if (player.isAi) {
+      card.title = '클릭하여 봇 난이도 변경 (초급 ➔ 중급 ➔ 고급 ➔ 최고급 ➔ 초급)';
+      card.addEventListener('click', () => {
+        if (isOnlineMode && !net.isHost) {
+          showNotification('온라인 대전에서는 방장만 봇 난이도를 변경할 수 있습니다.', 'error');
+          return;
+        }
+
+        const res = game.cycleBotDifficulty(player.id);
+        if (res) {
+          showNotification(`⚡ ${res.newName}으로 난이도가 변경되었습니다!`, 'info');
+          if (isOnlineMode) {
+            broadcastGameState();
+          } else {
+            renderAll();
+          }
+        }
+      });
+    }
+
     playersPanelEl.appendChild(card);
   });
 }
@@ -995,6 +1019,39 @@ function checkUrlRoomParam(): void {
   }
 }
 
+// ================== 다크 모드 / 컬러 타일 테마 ==================
+function initTheme(): void {
+  const saved = localStorage.getItem('rummikub_dark_mode');
+  // 기본적으로 저장된 값이 없거나 'true'이면 다크 모드를 활성화
+  const isDark = saved === null ? true : saved === 'true';
+  applyTheme(isDark);
+}
+
+function applyTheme(isDark: boolean): void {
+  if (isDark) {
+    document.body.classList.add('dark-mode');
+    btnThemeToggle.textContent = '☀️ 라이트 모드';
+    btnThemeToggle.title = '일반 아이보리 타일 모드로 전환';
+  } else {
+    document.body.classList.remove('dark-mode');
+    btnThemeToggle.textContent = '🌙 다크 모드';
+    btnThemeToggle.title = '컬러풀 다크 타일 모드로 전환 (빨강/노랑/초록/파랑)';
+  }
+  localStorage.setItem('rummikub_dark_mode', isDark ? 'true' : 'false');
+}
+
+btnThemeToggle.addEventListener('click', () => {
+  const willBeDark = !document.body.classList.contains('dark-mode');
+  applyTheme(willBeDark);
+  showNotification(
+    willBeDark
+      ? '🌙 다크 모드가 적용되었습니다! (타일 바탕색: 빨강, 노랑, 초록, 파랑)'
+      : '☀️ 라이트 모드가 적용되었습니다! (기본 아이보리 타일)',
+    'info'
+  );
+});
+
 // 최초 실행
+initTheme();
 initOfflineGame();
 checkUrlRoomParam();

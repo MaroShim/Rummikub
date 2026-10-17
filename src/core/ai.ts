@@ -12,7 +12,14 @@ export class RummikubAI {
     const difficulty: BotDifficulty = player.difficulty || 'intermediate';
 
     // 난이도별 인간적인 생각 시간 연출
-    const delay = difficulty === 'beginner' ? 700 : difficulty === 'intermediate' ? 900 : 1100;
+    const delay =
+      difficulty === 'beginner'
+        ? 600
+        : difficulty === 'intermediate'
+        ? 800
+        : difficulty === 'expert'
+        ? 1000
+        : 1200;
     await new Promise((resolve) => setTimeout(resolve, delay));
 
     if (!player.hasInitialMeld) {
@@ -31,8 +38,10 @@ export class RummikubAI {
         playedAny = this.playBeginnerTurn(game, player);
       } else if (difficulty === 'intermediate') {
         playedAny = this.playIntermediateTurn(game, player);
-      } else {
+      } else if (difficulty === 'expert') {
         playedAny = this.playExpertTurn(game, player);
+      } else {
+        playedAny = this.playMasterTurn(game, player);
       }
 
       if (playedAny) {
@@ -206,6 +215,65 @@ export class RummikubAI {
     // 5. 보드 세트에 타일 덧붙이기 (반복 수행하여 붙일 수 있는 만큼 최대한 붙임)
     while (this.tryAppendToExistingSets(game, player)) {
       played = true;
+    }
+
+    return played;
+  }
+
+  /**
+   * [최고급 - 알파봇]:
+   * - 고급의 모든 전략(조커 치환/회수, 5장 이상 런 분할, 세트 떼어내기, 독립 세트, 덧붙이기) 총동원
+   * - 연쇄 루프 탐색(Chained Manipulation Loop): 한 번의 수로 보드가 변경되면 다음 기회가 열리므로 반복 재탐색
+   * - 고득점 타일 우선 배출 (점수 최적화 및 패배 시 페널티 최소화)
+   */
+  private static playMasterTurn(game: RummikubGame, player: Player): boolean {
+    let played = false;
+    let roundProgress = true;
+    let iterations = 0;
+
+    // 최대 4회 반복 루프로 연쇄 수 탐색 (타일이 보드에 추가되면 새로운 조커 치환, 분할, 덧붙이기 기회가 연속으로 열림)
+    while (roundProgress && iterations < 4) {
+      roundProgress = false;
+      iterations++;
+
+      // 1. 조커 치환 및 회수 시도
+      if (this.trySwapJoker(game, player)) {
+        played = true;
+        roundProgress = true;
+      }
+
+      // 2. 5장 이상 런 분할(Run Splitting)
+      if (this.trySplitRuns(game, player)) {
+        played = true;
+        roundProgress = true;
+      }
+
+      // 3. 4장 이상 세트에서 빌려와 새 세트 만들기
+      if (this.tryBorrowFromLargeSets(game, player)) {
+        played = true;
+        roundProgress = true;
+      }
+
+      // 4. 고득점 독립 세트 모두 배출
+      const sets = this.findIndependentSets(player.hand, true);
+      sets.sort((a, b) => {
+        const sumA = a.reduce((sum, t) => sum + (t.isJoker ? 10 : t.value), 0);
+        const sumB = b.reduce((sum, t) => sum + (t.isJoker ? 10 : t.value), 0);
+        return sumB - sumA;
+      });
+      for (const s of sets) {
+        game.board.push(s);
+        const setIds = new Set(s.map((t) => t.id));
+        player.hand = player.hand.filter((t) => !setIds.has(t.id));
+        played = true;
+        roundProgress = true;
+      }
+
+      // 5. 보드 세트에 타일 덧붙이기 (가능한 모든 타일 끝까지 소진)
+      while (this.tryAppendToExistingSets(game, player)) {
+        played = true;
+        roundProgress = true;
+      }
     }
 
     return played;

@@ -218,13 +218,33 @@ body {
   gap: 4px;
 }
 
+.player-card.is-bot {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.player-card.is-bot:hover {
+  transform: translateY(-2px);
+  border-color: #60a5fa;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.25);
+}
+
 .diff-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 11px;
   font-weight: 700;
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
   vertical-align: middle;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.player-card.is-bot:hover .diff-tag {
+  transform: scale(1.05);
 }
 
 .diff-tag.beginner {
@@ -243,6 +263,13 @@ body {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
   border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.diff-tag.master {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(236, 72, 153, 0.3));
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.6);
+  box-shadow: 0 0 8px rgba(236, 72, 153, 0.35);
 }
 
 .player-meta .p-info {
@@ -560,6 +587,86 @@ body {
 
 .tile.is-joker .tile-value {
   font-size: var(--tile-joker-size);
+}
+
+/* ================== 다크 모드 전용 타일 바탕색 및 숫자 색상 ================== */
+body.dark-mode {
+  --bg-color: #0b0f17;
+  --table-bg: #0f172a;
+}
+
+/* 1. 빨강 타일: 빨강 바탕 + 화이트 숫자 */
+body.dark-mode .tile.color-red {
+  background: linear-gradient(145deg, #ef4444, #b91c1c);
+  border-color: #f87171;
+  border-bottom: 5px solid #991b1b;
+  box-shadow: 0 4px 10px rgba(185, 28, 28, 0.45);
+}
+body.dark-mode .tile.color-red .tile-value,
+body.dark-mode .tile.color-red .tile-icon {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 2. 노랑 타일: 밝은 계열 노랑 바탕 + 선명한 다크 네이비 숫자 */
+body.dark-mode .tile.color-yellow {
+  background: linear-gradient(145deg, #fef08a, #facc15);
+  border-color: #fef9c3;
+  border-bottom: 5px solid #ca8a04;
+  box-shadow: 0 4px 10px rgba(234, 179, 8, 0.35);
+}
+body.dark-mode .tile.color-yellow .tile-value,
+body.dark-mode .tile.color-yellow .tile-icon {
+  color: #0f172a;
+  text-shadow: none;
+}
+
+/* 3. 초록 타일(기존 검정 타일): 초록 바탕 + 화이트 숫자 */
+body.dark-mode .tile.color-black {
+  background: linear-gradient(145deg, #22c55e, #15803d);
+  border-color: #4ade80;
+  border-bottom: 5px solid #166534;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.45);
+}
+body.dark-mode .tile.color-black .tile-value,
+body.dark-mode .tile.color-black .tile-icon {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 4. 파랑 타일: 밝은 계열 파랑 바탕(스카이/아주르) + 선명한 딥 네이비 숫자 */
+body.dark-mode .tile.color-blue {
+  background: linear-gradient(145deg, #7dd3fc, #38bdf8);
+  border-color: #bae6fd;
+  border-bottom: 5px solid #0284c7;
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.35);
+}
+body.dark-mode .tile.color-blue .tile-value,
+body.dark-mode .tile.color-blue .tile-icon {
+  color: #082f49;
+  text-shadow: none;
+}
+
+/* 5. 조커 타일: 바이올렛 퍼플 바탕 + 빛나는 골드 옐로우 심볼 */
+body.dark-mode .tile.is-joker {
+  background: linear-gradient(145deg, #7e22ce, #4c1d95);
+  border-color: #a855f7;
+  border-bottom: 5px solid #3b0764;
+  box-shadow: 0 4px 10px rgba(126, 34, 206, 0.5);
+}
+body.dark-mode .tile.is-joker .tile-value,
+body.dark-mode .tile.is-joker .tile-icon {
+  color: #fde047;
+  text-shadow: 0 0 8px rgba(253, 224, 71, 0.7);
+}
+
+/* 다크 모드 랙 및 보드 디테일 강화 */
+body.dark-mode .rack-container {
+  background: linear-gradient(180deg, #18100a 0%, #0d0805 100%);
+  border-color: #3b2515;
+}
+body.dark-mode .board-wrapper {
+  background: radial-gradient(circle at 50% 50%, #172033 0%, #0b0f19 100%);
 }
 
 /* ================== 버튼 스타일 ================== */

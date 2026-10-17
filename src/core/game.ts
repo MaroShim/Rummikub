@@ -1,4 +1,4 @@
-import { Tile, TileSet, Player, TurnSnapshot } from './types.ts';
+import { Tile, TileSet, Player, TurnSnapshot, BotDifficulty } from './types.ts';
 import { createDeck, shuffleDeck } from './deck.ts';
 import { validateBoard, validateTileSet, autoOrderSet } from './validator.ts';
 
@@ -282,8 +282,37 @@ export class RummikubGame {
     return this.board.length - 1;
   }
 
+  /**
+   * 봇의 난이도를 다음 등급으로 올림 (초급 -> 중급 -> 고급 -> 최고급 -> 초급)
+   */
+  cycleBotDifficulty(playerId: string): { oldDiff: BotDifficulty; newDiff: BotDifficulty; newName: string; label: string } | null {
+    const player = this.players.find((p) => p.id === playerId && p.isAi);
+    if (!player) return null;
+
+    const currentDiff = player.difficulty || 'beginner';
+    const nextCfg = DIFFICULTY_CONFIG[currentDiff];
+    const newDiff = nextCfg.next;
+    const newInfo = DIFFICULTY_CONFIG[newDiff];
+
+    player.difficulty = newDiff;
+    player.name = `${newInfo.name} (${newInfo.label})`;
+    this.addLog(`${player.name}의 난이도가 [${newInfo.label}]으로 변경되었습니다.`);
+
+    return { oldDiff: currentDiff, newDiff, newName: player.name, label: newInfo.label };
+  }
+
   addLog(msg: string): void {
     this.logs.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
     if (this.logs.length > 50) this.logs.pop();
   }
 }
+
+export const DIFFICULTY_CONFIG: Record<
+  BotDifficulty,
+  { next: BotDifficulty; label: string; name: string }
+> = {
+  beginner: { next: 'intermediate', label: '초급', name: '루키봇' },
+  intermediate: { next: 'expert', label: '중급', name: '베테랑봇' },
+  expert: { next: 'master', label: '고급', name: '마스터봇' },
+  master: { next: 'beginner', label: '최고급', name: '알파봇' },
+};

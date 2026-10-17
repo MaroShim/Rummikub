@@ -9,7 +9,7 @@ export interface Tile {
 
 export type TileSet = Tile[];
 
-export type BotDifficulty = 'beginner' | 'intermediate' | 'expert';
+export type BotDifficulty = 'beginner' | 'intermediate' | 'expert' | 'master';
 
 export interface Player {
   id: string;

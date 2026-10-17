@@ -37,7 +37,7 @@
           <button id="btn-player-name" class="btn btn-sub" title="내 이름 변경">
             <span id="player-name-display">플레이어</span> ✏️
           </button>
-          <div class="bot-select-wrap" id="bot-select-wrap">
+          <div class="bot-select-wrap" id="bot-select-wrap" title="상단 봇 카드를 클릭하면 난이도를 변경할 수 있습니다 (초급 ➔ 중급 ➔ 고급 ➔ 최고급 ➔ 초급)">
             <label for="bot-count-select">봇 인원:</label>
             <select id="bot-count-select">
               <option value="1">1명 (초급)</option>
@@ -55,6 +55,7 @@
             🚪 방 나가기
           </button>
           <button id="btn-fullscreen" class="btn btn-icon" title="전체화면 전환">⛶</button>
+          <button id="btn-theme-toggle" class="btn btn-sub" title="다크 모드 / 컬러 타일 전환">🌙 다크 모드</button>
           <button id="btn-new-game" class="btn btn-secondary" title="1인용 AI 새 게임">새 게임</button>
           <button id="btn-rules" class="btn btn-icon" title="규칙 보기">❓</button>
         </div>
@@ -149,6 +150,7 @@
               </li>
               <li><strong>첫 등록 (Initial Meld):</strong> 자신이 최초로 낼 때는 자신의 패로만 만든 세트들의 숫자 합이 <strong>30점 이상</strong>이어야 합니다.</li>
               <li><strong>조합 및 조작:</strong> 첫 등록을 마친 후에는 보드에 있는 기존 타일들을 자유롭게 분해/추가/재배열할 수 있습니다. 단, 턴 종료 시 보드의 모든 세트가 유효해야 합니다.</li>
+              <li><strong>봇 난이도 조절:</strong> 상단 봇 카드를 클릭하면 난이도가 <strong>초급 ➔ 중급 ➔ 고급 ➔ 최고급 ➔ 초급</strong> 순서로 즉시 순환 변경됩니다.</li>
               <li><strong>승리:</strong> 자신의 타일을 가장 먼저 모두 소진한 사람이 최종 승리합니다!</li>
             </ul>
           </div>
