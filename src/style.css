@@ -326,15 +326,16 @@ body {
 
 .new-set-zone {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   border: 2px dashed #475569;
   border-radius: var(--tile-radius);
-  height: 60px;
-  width: clamp(260px, 45vw, 480px);
+  height: 120px;
+  width: clamp(280px, 45vw, 500px);
   color: #94a3b8;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   background: rgba(30, 41, 59, 0.45);
   cursor: pointer;
@@ -343,13 +344,13 @@ body {
 }
 
 .new-set-zone .plus-icon {
-  font-size: 16px;
+  font-size: 26px;
 }
 
 .new-set-zone:hover, .new-set-zone.drag-over {
   border-color: var(--accent-gold);
   color: var(--accent-gold);
-  background: rgba(245, 158, 11, 0.12);
+  background: rgba(245, 158, 11, 0.14);
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
 }
@@ -832,14 +833,14 @@ body {
     padding: 6px 0 2px;
   }
   .new-set-zone {
-    height: 46px;
+    height: 78px;
     width: 92%;
-    font-size: 13px;
+    font-size: 14px;
     gap: 6px;
-    border-radius: 6px;
+    border-radius: 8px;
   }
   .new-set-zone .plus-icon {
-    font-size: 14px;
+    font-size: 20px;
   }
   .tile {
     width: 32px;
@@ -975,15 +976,15 @@ body {
     padding: 2px 0;
   }
   .new-set-zone {
-    height: 34px;
-    width: 250px;
-    font-size: 11px;
+    height: 48px;
+    width: 280px;
+    font-size: 12px;
     gap: 4px;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
   .new-set-zone .plus-icon {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .player-dock {
