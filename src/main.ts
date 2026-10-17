@@ -690,10 +690,24 @@ async function checkAndRunOnlineAiTurns(): Promise<void> {
 
   while (game.getCurrentPlayer().isAi && !game.isGameOver) {
     const bot = game.getCurrentPlayer();
+    const botStartTime = Date.now();
+
     renderHeader();
     renderPlayers();
 
-    await RummikubAI.playTurn(game, bot);
+    // 봇 생각 시간(30초 제한) 실시간 카운트다운 타이머
+    const timerInterval = window.setInterval(() => {
+      const elapsed = Math.floor((Date.now() - botStartTime) / 1000);
+      const remaining = Math.max(0, 30 - elapsed);
+      turnPlayerNameEl.textContent = `🤖 ${bot.name} 생각 중... (${remaining}초 남음)`;
+    }, 1000);
+
+    try {
+      await RummikubAI.playTurn(game, bot);
+    } finally {
+      clearInterval(timerInterval);
+    }
+
     broadcastGameState();
 
     if (game.isGameOver) break;
@@ -992,10 +1006,24 @@ async function processAiTurns(): Promise<void> {
 
   while (game.getCurrentPlayer().isAi && !game.isGameOver) {
     const bot = game.getCurrentPlayer();
+    const botStartTime = Date.now();
+
     renderHeader();
     renderPlayers();
 
-    await RummikubAI.playTurn(game, bot);
+    // 봇 생각 시간(30초 제한) 실시간 카운트다운 타이머
+    const timerInterval = window.setInterval(() => {
+      const elapsed = Math.floor((Date.now() - botStartTime) / 1000);
+      const remaining = Math.max(0, 30 - elapsed);
+      turnPlayerNameEl.textContent = `🤖 ${bot.name} 생각 중... (${remaining}초 남음)`;
+    }, 1000);
+
+    try {
+      await RummikubAI.playTurn(game, bot);
+    } finally {
+      clearInterval(timerInterval);
+    }
+
     renderAll();
 
     if (game.isGameOver) {

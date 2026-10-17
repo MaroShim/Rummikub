@@ -6,10 +6,14 @@ import { validateGroup, validateRun, validateTileSet } from './validator.ts';
  * 루미큐브 봇(AI) 플레이어: 초급, 중급, 고급 난이도별 지능형 알고리즘
  */
 export class RummikubAI {
+  /** 봇 최대 생각 시간: 25초 (30초 제한 보장) */
+  static readonly MAX_THINK_TIME_MS = 25000;
+
   static async playTurn(game: RummikubGame, player: Player): Promise<void> {
     if (!player.isAi) return;
 
     const difficulty: BotDifficulty = player.difficulty || 'intermediate';
+    const startTime = Date.now();
 
     // 난이도별 인간적인 생각 시간 연출
     const delay =
@@ -22,43 +26,57 @@ export class RummikubAI {
         : 1200;
     await new Promise((resolve) => setTimeout(resolve, delay));
 
-    if (!player.hasInitialMeld) {
-      // 1. 첫 등록(Initial Meld) 30점 이상 시도
-      const success = this.tryInitialMeld(game, player, difficulty);
-      if (success) {
-        const endResult = game.endTurn();
-        if (endResult.success) return;
-        game.resetTurn();
-      }
-    } else {
-      // 2. 이미 등록 완료된 경우: 난이도별 보드 조작 및 타일 배출 수행
-      let playedAny = false;
-
-      if (difficulty === 'beginner') {
-        playedAny = this.playBeginnerTurn(game, player);
-      } else if (difficulty === 'intermediate') {
-        playedAny = this.playIntermediateTurn(game, player);
-      } else if (difficulty === 'expert') {
-        playedAny = this.playExpertTurn(game, player);
+    // 25초 타임아웃 레이스: 30초를 절대 초과하지 않도록 보장
+    const thinkTask = (async () => {
+      if (!player.hasInitialMeld) {
+        // 1. 첫 등록(Initial Meld) 30점 이상 시도
+        const success = this.tryInitialMeld(game, player, difficulty, startTime);
+        if (success) {
+          const endResult = game.endTurn();
+          if (endResult.success) return true;
+          game.resetTurn();
+        }
       } else {
-        playedAny = this.playMasterTurn(game, player);
-      }
+        // 2. 이미 등록 완료된 경우: 난이도별 보드 조작 및 타일 배출 수행
+        let playedAny = false;
 
-      if (playedAny) {
-        const endResult = game.endTurn();
-        if (endResult.success) return;
-        game.resetTurn();
+        if (difficulty === 'beginner') {
+          playedAny = this.playBeginnerTurn(game, player, startTime);
+        } else if (difficulty === 'intermediate') {
+          playedAny = this.playIntermediateTurn(game, player, startTime);
+        } else if (difficulty === 'expert') {
+          playedAny = this.playExpertTurn(game, player, startTime);
+        } else {
+          playedAny = this.playMasterTurn(game, player, startTime);
+        }
+
+        if (playedAny) {
+          const endResult = game.endTurn();
+          if (endResult.success) return true;
+          game.resetTurn();
+        }
       }
+      return false;
+    })();
+
+    const timeoutLimit = Math.max(1000, RummikubAI.MAX_THINK_TIME_MS - (Date.now() - startTime));
+    const timeoutTask = new Promise<boolean>((resolve) => {
+      setTimeout(() => resolve(false), timeoutLimit);
+    });
+
+    const isSuccess = await Promise.race([thinkTask, timeoutTask]);
+
+    if (!isSuccess) {
+      // 시간 초과(30초 제한 도달) 또는 낼 패가 없는 경우: 타일 1장 드로우(Pass)
+      game.resetTurn();
+      game.drawTile();
     }
-
-    // 낼 수 있는 수가 없거나 실패하면 타일 1장 드로우(Pass)
-    game.drawTile();
   }
 
   // ==============================================================
   // 1. 첫 등록(30점 이상) 시도
   // ==============================================================
-  private static tryInitialMeld(game: RummikubGame, player: Player, difficulty: BotDifficulty): boolean {
+  private static tryInitialMeld(game: RummikubGame, player: Player, difficulty: BotDifficulty, startTime: number): boolean {
     const allowJoker = difficulty !== 'beginner'; // 초급은 조커를 첫 등록에 쓰지 않음
     const candidates = this.findIndependentSets(player.hand, allowJoker);
     if (candidates.length === 0) return false;
@@ -70,6 +88,8 @@ export class RummikubAI {
     let bestScore = 0;
 
     for (const subset of subsets) {
+      if (Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
+
       const usedIds = new Set<string>();
       let hasConflict = false;
       let totalScore = 0;
@@ -87,8 +107,8 @@ export class RummikubAI {
       }
 
       if (!hasConflict && totalScore >= 30) {
-        if (difficulty === 'expert') {
-          // 고급: 높은 점수의 타일을 우선적으로 털어내는 조합 선택
+        if (difficulty === 'expert' || difficulty === 'master') {
+          // 고급/최고급: 높은 점수의 타일을 우선적으로 털어내는 조합 선택
           if (totalScore > bestScore) {
             bestScore = totalScore;
             bestSubset = subset;
@@ -123,13 +143,14 @@ export class RummikubAI {
    * - 패에서 완성된 순수 세트(3장 이상) 내려놓기
    * - 기존 보드 세트에 1장 붙이기는 40% 확률로만 시도 (초보적 실수)
    */
-  private static playBeginnerTurn(game: RummikubGame, player: Player): boolean {
+  private static playBeginnerTurn(game: RummikubGame, player: Player, startTime: number): boolean {
     let played = false;
 
     // 패에서 독립 세트 내려놓기
     const sets = this.findIndependentSets(player.hand, false);
     if (sets.length > 0) {
       for (const s of sets) {
+        if (Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
         game.board.push(s);
         const setIds = new Set(s.map((t) => t.id));
         player.hand = player.hand.filter((t) => !setIds.has(t.id));
@@ -138,8 +159,8 @@ export class RummikubAI {
     }
 
     // 기존 세트에 1장 붙이기 (40% 확률)
-    if (Math.random() < 0.4) {
-      if (this.tryAppendToExistingSets(game, player)) {
+    if (Math.random() < 0.4 && Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS) {
+      if (this.tryAppendToExistingSets(game, player, startTime)) {
         played = true;
       }
     }
@@ -153,12 +174,13 @@ export class RummikubAI {
    * - 보드 세트에 타일 적극적 덧붙이기 (1~2장 연속)
    * - 4장 이상 세트에서 1장 떼어내어 내 패와 결합해 새 세트 만들기 (Borrowing)
    */
-  private static playIntermediateTurn(game: RummikubGame, player: Player): boolean {
+  private static playIntermediateTurn(game: RummikubGame, player: Player, startTime: number): boolean {
     let played = false;
 
     // 1. 패에서 독립 세트 모두 내기
     const sets = this.findIndependentSets(player.hand, true);
     for (const s of sets) {
+      if (Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
       game.board.push(s);
       const setIds = new Set(s.map((t) => t.id));
       player.hand = player.hand.filter((t) => !setIds.has(t.id));
@@ -166,12 +188,12 @@ export class RummikubAI {
     }
 
     // 2. 보드 세트에 타일 덧붙이기
-    if (this.tryAppendToExistingSets(game, player)) {
+    if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.tryAppendToExistingSets(game, player, startTime)) {
       played = true;
     }
 
     // 3. 4장 이상인 세트에서 타일 1장 빌려와서 새 세트 만들기
-    if (this.tryBorrowFromLargeSets(game, player)) {
+    if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.tryBorrowFromLargeSets(game, player, startTime)) {
       played = true;
     }
 
@@ -185,27 +207,28 @@ export class RummikubAI {
    * - 5장 이상 런 분할(Run Splitting)로 내 패의 타일 끼워넣기
    * - 턴당 최대한 많은 타일을 소진할 수 있는 최적 수 탐색
    */
-  private static playExpertTurn(game: RummikubGame, player: Player): boolean {
+  private static playExpertTurn(game: RummikubGame, player: Player, startTime: number): boolean {
     let played = false;
 
     // 1. 조커 치환 및 회수 시도
-    if (this.trySwapJoker(game, player)) {
+    if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.trySwapJoker(game, player, startTime)) {
       played = true;
     }
 
     // 2. 5장 이상 런 쪼개기(Run Splitting) 시도
-    if (this.trySplitRuns(game, player)) {
+    if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.trySplitRuns(game, player, startTime)) {
       played = true;
     }
 
     // 3. 4장 이상 세트에서 빌려와 새 세트 만들기
-    if (this.tryBorrowFromLargeSets(game, player)) {
+    if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.tryBorrowFromLargeSets(game, player, startTime)) {
       played = true;
     }
 
     // 4. 패에서 독립 세트 모두 내기
     const sets = this.findIndependentSets(player.hand, true);
     for (const s of sets) {
+      if (Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
       game.board.push(s);
       const setIds = new Set(s.map((t) => t.id));
       player.hand = player.hand.filter((t) => !setIds.has(t.id));
@@ -213,7 +236,7 @@ export class RummikubAI {
     }
 
     // 5. 보드 세트에 타일 덧붙이기 (반복 수행하여 붙일 수 있는 만큼 최대한 붙임)
-    while (this.tryAppendToExistingSets(game, player)) {
+    while (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.tryAppendToExistingSets(game, player, startTime)) {
       played = true;
     }
 
@@ -226,51 +249,54 @@ export class RummikubAI {
    * - 연쇄 루프 탐색(Chained Manipulation Loop): 한 번의 수로 보드가 변경되면 다음 기회가 열리므로 반복 재탐색
    * - 고득점 타일 우선 배출 (점수 최적화 및 패배 시 페널티 최소화)
    */
-  private static playMasterTurn(game: RummikubGame, player: Player): boolean {
+  private static playMasterTurn(game: RummikubGame, player: Player, startTime: number): boolean {
     let played = false;
     let roundProgress = true;
     let iterations = 0;
 
-    // 최대 4회 반복 루프로 연쇄 수 탐색 (타일이 보드에 추가되면 새로운 조커 치환, 분할, 덧붙이기 기회가 연속으로 열림)
-    while (roundProgress && iterations < 4) {
+    // 최대 4회 반복 루프로 연쇄 수 탐색 (타임아웃 한도 25초 이내 유지)
+    while (roundProgress && iterations < 4 && Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS) {
       roundProgress = false;
       iterations++;
 
       // 1. 조커 치환 및 회수 시도
-      if (this.trySwapJoker(game, player)) {
+      if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.trySwapJoker(game, player, startTime)) {
         played = true;
         roundProgress = true;
       }
 
       // 2. 5장 이상 런 분할(Run Splitting)
-      if (this.trySplitRuns(game, player)) {
+      if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.trySplitRuns(game, player, startTime)) {
         played = true;
         roundProgress = true;
       }
 
       // 3. 4장 이상 세트에서 빌려와 새 세트 만들기
-      if (this.tryBorrowFromLargeSets(game, player)) {
+      if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.tryBorrowFromLargeSets(game, player, startTime)) {
         played = true;
         roundProgress = true;
       }
 
       // 4. 고득점 독립 세트 모두 배출
-      const sets = this.findIndependentSets(player.hand, true);
-      sets.sort((a, b) => {
-        const sumA = a.reduce((sum, t) => sum + (t.isJoker ? 10 : t.value), 0);
-        const sumB = b.reduce((sum, t) => sum + (t.isJoker ? 10 : t.value), 0);
-        return sumB - sumA;
-      });
-      for (const s of sets) {
-        game.board.push(s);
-        const setIds = new Set(s.map((t) => t.id));
-        player.hand = player.hand.filter((t) => !setIds.has(t.id));
-        played = true;
-        roundProgress = true;
+      if (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS) {
+        const sets = this.findIndependentSets(player.hand, true);
+        sets.sort((a, b) => {
+          const sumA = a.reduce((sum, t) => sum + (t.isJoker ? 10 : t.value), 0);
+          const sumB = b.reduce((sum, t) => sum + (t.isJoker ? 10 : t.value), 0);
+          return sumB - sumA;
+        });
+        for (const s of sets) {
+          if (Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
+          game.board.push(s);
+          const setIds = new Set(s.map((t) => t.id));
+          player.hand = player.hand.filter((t) => !setIds.has(t.id));
+          played = true;
+          roundProgress = true;
+        }
       }
 
       // 5. 보드 세트에 타일 덧붙이기 (가능한 모든 타일 끝까지 소진)
-      while (this.tryAppendToExistingSets(game, player)) {
+      while (Date.now() - startTime < RummikubAI.MAX_THINK_TIME_MS && this.tryAppendToExistingSets(game, player, startTime)) {
         played = true;
         roundProgress = true;
       }
@@ -288,8 +314,10 @@ export class RummikubAI {
    * 보드 세트에 조커가 있을 때, 그 조커가 대체하고 있는 실제 타일을 내 패에서 내고
    * 조커를 회수하여, 내 패의 남은 타일과 함께 새로운 세트를 구성해 내려놓음.
    */
-  private static trySwapJoker(game: RummikubGame, player: Player): boolean {
+  private static trySwapJoker(game: RummikubGame, player: Player, startTime?: number): boolean {
     for (let sIdx = 0; sIdx < game.board.length; sIdx++) {
+      if (startTime && Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
+
       const set = game.board[sIdx];
       const jokerIdx = set.findIndex((t) => t.isJoker);
       if (jokerIdx === -1) continue;
@@ -307,6 +335,7 @@ export class RummikubAI {
 
         // 내 패에 빠진 색상의 해당 숫자 타일이 있는지 확인
         for (const missingColor of missingColors) {
+          if (startTime && Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
           const handTileIdx = player.hand.findIndex((t) => !t.isJoker && t.color === missingColor && t.value === targetVal);
           if (handTileIdx !== -1) {
             const myTile = player.hand.splice(handTileIdx, 1)[0];
@@ -343,8 +372,10 @@ export class RummikubAI {
    * 예: [빨3, 빨4, 빨5, 빨6, 빨7] (5장)에 내 패의 [빨5]를 결합하여
    * [빨3, 빨4, 빨5] (3장) + [빨5, 빨6, 빨7] (3장) 두 개의 유효한 런으로 분할!
    */
-  private static trySplitRuns(game: RummikubGame, player: Player): boolean {
+  private static trySplitRuns(game: RummikubGame, player: Player, startTime?: number): boolean {
     for (let sIdx = 0; sIdx < game.board.length; sIdx++) {
+      if (startTime && Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
+
       const set = game.board[sIdx];
       const runRes = validateRun(set);
       if (!runRes.valid || set.length < 5) continue;
@@ -355,14 +386,11 @@ export class RummikubAI {
       const color = normal[0].color;
 
       // 런 내에서 분할점 i (최소 3장, 남은 것도 최소 3장)
-      // 총 길이가 n일 때, 내 패의 타일을 하나 추가하면 총 n+1장
-      // 두 런의 길이가 각각 >= 3이어야 하므로 n+1 >= 6, 즉 n >= 5!
       for (let splitAfter = 2; splitAfter < set.length - 2; splitAfter++) {
+        if (startTime && Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
         const rightVal = set[splitAfter + 1].value; // 오른쪽 런의 시작 값
 
         // 만약 내 패에 rightVal - 1이 있다면 런 분할 가능!
-        // 왼쪽 런: set[0...splitAfter] (길이 splitAfter+1 >= 3)
-        // 오른쪽 런: [내패의 타일] + set[splitAfter+1...]
         const neededVal = rightVal - 1;
         const handIdx = player.hand.findIndex((t) => !t.isJoker && t.color === color && t.value === neededVal);
 
@@ -388,8 +416,10 @@ export class RummikubAI {
    * - 4장 그룹에서 1장 떼어가도 남은 3장은 유효
    * - 4장 이상 런의 양끝 타일 1장 떼어가도 남은 세트는 유효
    */
-  private static tryBorrowFromLargeSets(game: RummikubGame, player: Player): boolean {
+  private static tryBorrowFromLargeSets(game: RummikubGame, player: Player, startTime?: number): boolean {
     for (let sIdx = 0; sIdx < game.board.length; sIdx++) {
+      if (startTime && Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
+
       const set = game.board[sIdx];
       if (set.length < 4) continue;
 
@@ -397,6 +427,7 @@ export class RummikubAI {
       const groupRes = validateGroup(set);
       if (groupRes.valid) {
         for (let i = 0; i < set.length; i++) {
+          if (startTime && Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
           const borrowedTile = set.splice(i, 1)[0];
 
           // 떼어낸 타일 + 내 패 타일들로 새 세트가 만들어지는지 확인
@@ -461,14 +492,18 @@ export class RummikubAI {
   /**
    * 보드 세트에 내 패의 타일을 앞/뒤에 붙이기
    */
-  private static tryAppendToExistingSets(game: RummikubGame, player: Player): boolean {
+  private static tryAppendToExistingSets(game: RummikubGame, player: Player, startTime?: number): boolean {
     let attached = false;
 
     for (let i = player.hand.length - 1; i >= 0; i--) {
+      if (startTime && Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
+
       const tile = player.hand[i];
       let tileAttached = false;
 
       for (const set of game.board) {
+        if (startTime && Date.now() - startTime > RummikubAI.MAX_THINK_TIME_MS) break;
+
         // 1. 뒤에 추가
         set.push(tile);
         if (validateTileSet(set).valid) {
@@ -592,10 +627,11 @@ export class RummikubAI {
 
   private static getSubsets<T>(array: T[]): T[][] {
     const result: T[][] = [];
-    const total = 1 << Math.min(array.length, 12); // 최대 12개 제한으로 과도한 연산 방지
+    const limit = Math.min(array.length, 10); // 최대 10개(1024개) 제한으로 수 초 이상 지연 방지
+    const total = 1 << limit;
     for (let i = 1; i < total; i++) {
       const subset: T[] = [];
-      for (let j = 0; j < array.length; j++) {
+      for (let j = 0; j < limit; j++) {
         if ((i & (1 << j)) !== 0) {
           subset.push(array[j]);
         }
