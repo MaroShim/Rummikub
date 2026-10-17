@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>루미큐브 (Rummikub Web)</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 헤더 네비게이션 -->
+      <header class="game-header">
+        <div class="logo-area">
+          <span class="logo-icon">🎲</span>
+          <h1>루미큐브 <span>Web</span></h1>
+        </div>
+
+        <div class="header-info">
+          <div class="deck-count-badge" title="남은 타일 수">
+            <span class="icon">🎴</span>
+            <span>남은 풀: <strong id="deck-count">0</strong>장</span>
+          </div>
+          <div class="current-turn-badge" id="current-turn-badge">
+            <span class="spinner" id="turn-spinner"></span>
+            <span id="turn-player-name">플레이어 턴</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="bot-select-wrap">
+            <label for="bot-count-select">봇 인원:</label>
+            <select id="bot-count-select">
+              <option value="1">1명 (1:1)</option>
+              <option value="2">2명 (총 3인)</option>
+              <option value="3" selected>3명 (총 4인)</option>
+            </select>
+          </div>
+          <button id="btn-new-game" class="btn btn-secondary">새 게임</button>
+          <button id="btn-rules" class="btn btn-icon" title="규칙 보기">❓</button>
+        </div>
+      </header>
+
+      <!-- 플레이어 상태 카드 영역 -->
+      <section class="players-panel" id="players-panel">
+        <!-- JS로 동적 생성 -->
+      </section>
+
+      <!-- 메인 게임 보드 영역 -->
+      <main class="board-wrapper">
+        <div class="board-header">
+          <h2>공용 테이블 (Table Board)</h2>
+          <span class="board-hint">타일을 드래그하여 세트를 만들거나 기존 세트에 붙이세요</span>
+        </div>
+
+        <div class="board-container" id="board-container">
+          <!-- 세트들이 동적으로 렌더링됨 -->
+          <div class="empty-board-msg" id="empty-board-msg">
+            보드에 등록된 세트가 없습니다.<br />첫 등록(자신의 타일 합계 30점 이상)을 완성해 테이블로 드래그하세요!
+          </div>
+        </div>
+      </main>
+
+      <!-- 메시지 및 알림 배너 -->
+      <div id="notification-bar" class="notification-bar"></div>
+
+      <!-- 하단 플레이어 컨트롤 및 타일 랙 -->
+      <footer class="player-dock">
+        <!-- 랙 헤더 및 컨트롤 -->
+        <div class="rack-controls">
+          <div class="rack-title">
+            내 타일 거치대 (<span id="hand-count">0</span>장)
+            <span id="meld-status" class="badge badge-unmelded">첫 등록 필요 (30점 이상)</span>
+          </div>
+
+          <div class="dock-buttons">
+            <div class="btn-group">
+              <button id="btn-sort-num" class="btn btn-sub" title="숫자별 정렬 (7 7 7)">
+                정렬 <strong>777</strong>
+              </button>
+              <button id="btn-sort-color" class="btn btn-sub" title="색상별 정렬 (7 8 9)">
+                정렬 <strong>789</strong>
+              </button>
+            </div>
+
+            <div class="btn-group main-actions">
+              <button id="btn-reset" class="btn btn-warning" title="이번 턴에 놓은 타일 모두 원래대로">
+                ↩️ 되돌리기
+              </button>
+              <button id="btn-draw" class="btn btn-info" title="타일 1장을 뽑고 턴 넘기기">
+                📥 타일 뽑기 (Pass)
+              </button>
+              <button id="btn-end-turn" class="btn btn-success" title="유효성 검사 후 턴 완료">
+                ✅ 턴 확정
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 타일 랙 컨테이너 -->
+        <div class="rack-container" id="rack-container">
+          <!-- 플레이어 타일 목록 동적 생성 -->
+        </div>
+      </footer>
+
+      <!-- 규칙 모달 -->
+      <div id="rules-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>📖 루미큐브 기본 규칙 안내</h3>
+            <button id="btn-close-modal" class="btn-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <ul>
+              <li><strong>타일 구성:</strong> 4색상(검정, 파랑, 빨강, 노랑) 1~13 각 2세트 + 조커 2장 = 총 106장.</li>
+              <li><strong>유효 세트 조건 (최소 3장 이상):</strong>
+                <ul>
+                  <li><strong>그룹 (Group):</strong> 같은 숫자, 서로 다른 색상 3~4장 (예: <span class="badge-tile red">7</span> <span class="badge-tile blue">7</span> <span class="badge-tile black">7</span>)</li>
+                  <li><strong>런 (Run):</strong> 같은 색상, 연속된 숫자 3장 이상 (예: <span class="badge-tile blue">4</span> <span class="badge-tile blue">5</span> <span class="badge-tile blue">6</span>)</li>
+                  <li><strong>조커 (Joker):</strong> 어떤 숫자/색상으로든 대체 가능</li>
+                </ul>
+              </li>
+              <li><strong>첫 등록 (Initial Meld):</strong> 자신이 최초로 낼 때는 자신의 패로만 만든 세트들의 숫자 합이 <strong>30점 이상</strong>이어야 합니다.</li>
+              <li><strong>조합 및 조작:</strong> 첫 등록을 마친 후에는 보드에 있는 기존 타일들을 자유롭게 분해/추가/재배열할 수 있습니다. 단, 턴 종료 시 보드의 모든 세트가 유효해야 합니다.</li>
+              <li><strong>승리:</strong> 자신의 타일을 가장 먼저 모두 소진한 사람이 최종 승리합니다!</li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button id="btn-modal-ok" class="btn btn-primary">확인</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
