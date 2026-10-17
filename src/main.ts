@@ -18,6 +18,7 @@ const turnPlayerNameEl = document.getElementById('turn-player-name') as HTMLElem
 const currentTurnBadgeEl = document.getElementById('current-turn-badge') as HTMLElement;
 const playersPanelEl = document.getElementById('players-panel') as HTMLElement;
 const boardContainerEl = document.getElementById('board-container') as HTMLElement;
+const newSetZoneEl = document.getElementById('new-set-zone') as HTMLElement;
 const rackContainerEl = document.getElementById('rack-container') as HTMLElement;
 const handCountEl = document.getElementById('hand-count') as HTMLElement;
 const meldStatusEl = document.getElementById('meld-status') as HTMLElement;
@@ -199,13 +200,6 @@ function renderBoard(): void {
       boardContainerEl.appendChild(setEl);
     });
   }
-
-  // 새 세트 드롭존
-  const newSetZone = document.createElement('div');
-  newSetZone.className = 'new-set-zone';
-  newSetZone.textContent = '+ 새 세트 만들기';
-  bindNewSetDropEvents(newSetZone);
-  boardContainerEl.appendChild(newSetZone);
 }
 
 function renderRack(): void {
@@ -320,6 +314,9 @@ function bindNewSetDropEvents(newZoneEl: HTMLElement): void {
     handleDropOnNewSet(currentDragSource);
   });
 }
+
+// 하단 고정 새 세트 드롭존 이벤트 등록
+bindNewSetDropEvents(newSetZoneEl);
 
 rackContainerEl.addEventListener('dragover', (e) => {
   e.preventDefault();

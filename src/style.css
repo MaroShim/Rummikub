@@ -314,26 +314,44 @@ body {
   transform: scale(1.02);
 }
 
-/* 새 세트 드롭존 */
+/* 공용 테이블 하단 중앙: 새 세트 만들기 바 */
+.new-set-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0 2px;
+  flex-shrink: 0;
+  width: 100%;
+}
+
 .new-set-zone {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   border: 2px dashed #475569;
   border-radius: var(--tile-radius);
-  min-height: var(--set-min-h);
-  min-width: 140px;
-  color: #64748b;
-  font-size: 14px;
-  padding: 6px 16px;
+  height: 60px;
+  width: clamp(260px, 45vw, 480px);
+  color: #94a3b8;
+  font-size: 15px;
+  font-weight: 600;
+  background: rgba(30, 41, 59, 0.45);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.new-set-zone .plus-icon {
+  font-size: 16px;
 }
 
 .new-set-zone:hover, .new-set-zone.drag-over {
   border-color: var(--accent-gold);
   color: var(--accent-gold);
-  background: rgba(245, 158, 11, 0.05);
+  background: rgba(245, 158, 11, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
 }
 
 /* ================== 알림 배너 ================== */
@@ -810,12 +828,18 @@ body {
     gap: 3px;
     border-radius: 6px;
   }
+  .new-set-bar {
+    padding: 6px 0 2px;
+  }
   .new-set-zone {
-    min-height: 54px;
-    min-width: 90px;
-    font-size: 11px;
-    padding: 2px 8px;
+    height: 46px;
+    width: 92%;
+    font-size: 13px;
+    gap: 6px;
     border-radius: 6px;
+  }
+  .new-set-zone .plus-icon {
+    font-size: 14px;
   }
   .tile {
     width: 32px;
@@ -947,10 +971,19 @@ body {
     padding: 2px;
     gap: 2px;
   }
+  .new-set-bar {
+    padding: 2px 0;
+  }
   .new-set-zone {
-    min-height: 42px;
-    padding: 2px 8px;
-    font-size: 10px;
+    height: 34px;
+    width: 250px;
+    font-size: 11px;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .new-set-zone .plus-icon {
+    font-size: 12px;
   }
 
   .player-dock {
