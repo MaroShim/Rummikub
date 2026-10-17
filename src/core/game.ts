@@ -40,12 +40,20 @@ export class RummikubGame {
       },
     ];
 
-    const botNames = ['알파봇 (AI 1)', '베타봇 (AI 2)', '감마봇 (AI 3)'];
+    // 난이도 정의: 봇 1명(초급), 2명(초급, 중급), 3명(초급, 중급, 고급)
+    const botConfigs: { name: string; difficulty: 'beginner' | 'intermediate' | 'expert' }[] = [
+      { name: '루키봇 (초급)', difficulty: 'beginner' },
+      { name: '베테랑봇 (중급)', difficulty: 'intermediate' },
+      { name: '마스터봇 (고급)', difficulty: 'expert' },
+    ];
+
     for (let i = 0; i < botCount; i++) {
+      const cfg = botConfigs[i] || { name: `봇 ${i + 1}`, difficulty: 'intermediate' };
       this.players.push({
         id: `bot-${i + 1}`,
-        name: botNames[i] || `봇 ${i + 1}`,
+        name: cfg.name,
         isAi: true,
+        difficulty: cfg.difficulty,
         hand: [],
         hasInitialMeld: false,
       });

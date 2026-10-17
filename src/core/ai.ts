@@ -1,72 +1,66 @@
-import { Tile, TileSet, Player } from './types.ts';
+import { Tile, TileSet, Player, BotDifficulty } from './types.ts';
 import { RummikubGame } from './game.ts';
-import { validateGroup, validateRun } from './validator.ts';
+import { validateGroup, validateRun, validateTileSet } from './validator.ts';
 
 /**
- * 봇(AI) 플레이어의 턴을 처리합니다.
+ * 루미큐브 봇(AI) 플레이어: 초급, 중급, 고급 난이도별 지능형 알고리즘
  */
 export class RummikubAI {
   static async playTurn(game: RummikubGame, player: Player): Promise<void> {
     if (!player.isAi) return;
 
-    // 인간적인 느낌을 주기 위한 가벼운 딜레이 (600ms)
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    const difficulty: BotDifficulty = player.difficulty || 'intermediate';
+
+    // 난이도별 인간적인 생각 시간 연출
+    const delay = difficulty === 'beginner' ? 700 : difficulty === 'intermediate' ? 900 : 1100;
+    await new Promise((resolve) => setTimeout(resolve, delay));
 
     if (!player.hasInitialMeld) {
-      // 1. 첫 등록 시도
-      const success = this.tryInitialMeld(game, player);
+      // 1. 첫 등록(Initial Meld) 30점 이상 시도
+      const success = this.tryInitialMeld(game, player, difficulty);
       if (success) {
-        game.endTurn();
-        return;
+        const endResult = game.endTurn();
+        if (endResult.success) return;
+        game.resetTurn();
       }
     } else {
-      // 2. 이미 등록 완료된 경우: 패에서 세트 내기 or 기존 보드에 타일 덧붙이기
+      // 2. 이미 등록 완료된 경우: 난이도별 보드 조작 및 타일 배출 수행
       let playedAny = false;
 
-      // 2-1. 패에서 새로운 런/그룹 세트 내기
-      const newSets = this.findIndependentSets(player.hand);
-      if (newSets.length > 0) {
-        for (const set of newSets) {
-          game.board.push(set);
-          // 패에서 해당 타일들 제거
-          const setIds = new Set(set.map((t) => t.id));
-          player.hand = player.hand.filter((t) => !setIds.has(t.id));
-          playedAny = true;
-        }
-      }
-
-      // 2-2. 기존 보드 세트에 패의 타일 1장씩 덧붙이기
-      if (this.tryAppendToExistingSets(game, player)) {
-        playedAny = true;
+      if (difficulty === 'beginner') {
+        playedAny = this.playBeginnerTurn(game, player);
+      } else if (difficulty === 'intermediate') {
+        playedAny = this.playIntermediateTurn(game, player);
+      } else {
+        playedAny = this.playExpertTurn(game, player);
       }
 
       if (playedAny) {
         const endResult = game.endTurn();
-        if (endResult.success) {
-          return;
-        } else {
-          // 혹시 규칙 위반 오류 발생 시 원상복구 후 드로우
-          game.resetTurn();
-        }
+        if (endResult.success) return;
+        game.resetTurn();
       }
     }
 
-    // 낼 수 있는 게 없으면 드로우
+    // 낼 수 있는 수가 없거나 실패하면 타일 1장 드로우(Pass)
     game.drawTile();
   }
 
-  /**
-   * 첫 등록(30점 이상) 시도
-   */
-  private static tryInitialMeld(game: RummikubGame, player: Player): boolean {
-    const independentSets = this.findIndependentSets(player.hand);
-    if (independentSets.length === 0) return false;
+  // ==============================================================
+  // 1. 첫 등록(30점 이상) 시도
+  // ==============================================================
+  private static tryInitialMeld(game: RummikubGame, player: Player, difficulty: BotDifficulty): boolean {
+    const allowJoker = difficulty !== 'beginner'; // 초급은 조커를 첫 등록에 쓰지 않음
+    const candidates = this.findIndependentSets(player.hand, allowJoker);
+    if (candidates.length === 0) return false;
 
-    // 세트들의 점수 합산 조합 중 30점 이상인 최소/최적 조합 탐색
-    // 가능한 부분집합 탐색 (세트 수가 보통 1~4개이므로 비트마스크 또는 재귀)
-    const subsets = this.getSubsets(independentSets);
+    // 세트들의 부분집합 중 타일 중복 없이 합계 30점 이상인 조합 탐색
+    const subsets = this.getSubsets(candidates);
+
+    let bestSubset: TileSet[] | null = null;
+    let bestScore = 0;
+
     for (const subset of subsets) {
-      // 타일 ID 중복 여부 확인
       const usedIds = new Set<string>();
       let hasConflict = false;
       let totalScore = 0;
@@ -84,12 +78,312 @@ export class RummikubAI {
       }
 
       if (!hasConflict && totalScore >= 30) {
-        // 성공! 보드에 추가하고 패에서 제거
-        for (const set of subset) {
-          game.board.push(set);
+        if (difficulty === 'expert') {
+          // 고급: 높은 점수의 타일을 우선적으로 털어내는 조합 선택
+          if (totalScore > bestScore) {
+            bestScore = totalScore;
+            bestSubset = subset;
+          }
+        } else {
+          // 초급/중급: 30점 넘는 첫 번째 조합 즉시 선택
+          bestSubset = subset;
+          break;
         }
-        player.hand = player.hand.filter((t) => !usedIds.has(t.id));
-        return true;
+      }
+    }
+
+    if (bestSubset) {
+      const usedIds = new Set<string>();
+      for (const set of bestSubset) {
+        game.board.push(set);
+        set.forEach((t) => usedIds.add(t.id));
+      }
+      player.hand = player.hand.filter((t) => !usedIds.has(t.id));
+      return true;
+    }
+
+    return false;
+  }
+
+  // ==============================================================
+  // 2. 난이도별 플레이 로직
+  // ==============================================================
+
+  /**
+   * [초급 - 루키봇]:
+   * - 패에서 완성된 순수 세트(3장 이상) 내려놓기
+   * - 기존 보드 세트에 1장 붙이기는 40% 확률로만 시도 (초보적 실수)
+   */
+  private static playBeginnerTurn(game: RummikubGame, player: Player): boolean {
+    let played = false;
+
+    // 패에서 독립 세트 내려놓기
+    const sets = this.findIndependentSets(player.hand, false);
+    if (sets.length > 0) {
+      for (const s of sets) {
+        game.board.push(s);
+        const setIds = new Set(s.map((t) => t.id));
+        player.hand = player.hand.filter((t) => !setIds.has(t.id));
+        played = true;
+      }
+    }
+
+    // 기존 세트에 1장 붙이기 (40% 확률)
+    if (Math.random() < 0.4) {
+      if (this.tryAppendToExistingSets(game, player)) {
+        played = true;
+      }
+    }
+
+    return played;
+  }
+
+  /**
+   * [중급 - 베테랑봇]:
+   * - 패에서 가능한 모든 독립 세트 100% 내려놓기
+   * - 보드 세트에 타일 적극적 덧붙이기 (1~2장 연속)
+   * - 4장 이상 세트에서 1장 떼어내어 내 패와 결합해 새 세트 만들기 (Borrowing)
+   */
+  private static playIntermediateTurn(game: RummikubGame, player: Player): boolean {
+    let played = false;
+
+    // 1. 패에서 독립 세트 모두 내기
+    const sets = this.findIndependentSets(player.hand, true);
+    for (const s of sets) {
+      game.board.push(s);
+      const setIds = new Set(s.map((t) => t.id));
+      player.hand = player.hand.filter((t) => !setIds.has(t.id));
+      played = true;
+    }
+
+    // 2. 보드 세트에 타일 덧붙이기
+    if (this.tryAppendToExistingSets(game, player)) {
+      played = true;
+    }
+
+    // 3. 4장 이상인 세트에서 타일 1장 빌려와서 새 세트 만들기
+    if (this.tryBorrowFromLargeSets(game, player)) {
+      played = true;
+    }
+
+    return played;
+  }
+
+  /**
+   * [고급 - 마스터봇]:
+   * - 중급의 모든 전략 완벽 수행
+   * - 보드의 조커를 내 패의 타일로 교체(치환)하여 조커 회수 후 새 세트 배출
+   * - 5장 이상 런 분할(Run Splitting)로 내 패의 타일 끼워넣기
+   * - 턴당 최대한 많은 타일을 소진할 수 있는 최적 수 탐색
+   */
+  private static playExpertTurn(game: RummikubGame, player: Player): boolean {
+    let played = false;
+
+    // 1. 조커 치환 및 회수 시도
+    if (this.trySwapJoker(game, player)) {
+      played = true;
+    }
+
+    // 2. 5장 이상 런 쪼개기(Run Splitting) 시도
+    if (this.trySplitRuns(game, player)) {
+      played = true;
+    }
+
+    // 3. 4장 이상 세트에서 빌려와 새 세트 만들기
+    if (this.tryBorrowFromLargeSets(game, player)) {
+      played = true;
+    }
+
+    // 4. 패에서 독립 세트 모두 내기
+    const sets = this.findIndependentSets(player.hand, true);
+    for (const s of sets) {
+      game.board.push(s);
+      const setIds = new Set(s.map((t) => t.id));
+      player.hand = player.hand.filter((t) => !setIds.has(t.id));
+      played = true;
+    }
+
+    // 5. 보드 세트에 타일 덧붙이기 (반복 수행하여 붙일 수 있는 만큼 최대한 붙임)
+    while (this.tryAppendToExistingSets(game, player)) {
+      played = true;
+    }
+
+    return played;
+  }
+
+  // ==============================================================
+  // 3. 고급 루미큐브 전략 알고리즘 상세 구현
+  // ==============================================================
+
+  /**
+   * [보드 조커 치환 및 회수 (Joker Substitution)]
+   * 보드 세트에 조커가 있을 때, 그 조커가 대체하고 있는 실제 타일을 내 패에서 내고
+   * 조커를 회수하여, 내 패의 남은 타일과 함께 새로운 세트를 구성해 내려놓음.
+   */
+  private static trySwapJoker(game: RummikubGame, player: Player): boolean {
+    for (let sIdx = 0; sIdx < game.board.length; sIdx++) {
+      const set = game.board[sIdx];
+      const jokerIdx = set.findIndex((t) => t.isJoker);
+      if (jokerIdx === -1) continue;
+
+      // 그룹에서 조커가 대체하는 색상 확인
+      const normalTiles = set.filter((t) => !t.isJoker);
+      if (normalTiles.length < 2) continue;
+
+      const isGroup = normalTiles.every((t) => t.value === normalTiles[0].value);
+      if (isGroup) {
+        const targetVal = normalTiles[0].value;
+        const usedColors = new Set(normalTiles.map((t) => t.color));
+        const allColors: Array<'black' | 'blue' | 'red' | 'yellow'> = ['black', 'blue', 'red', 'yellow'];
+        const missingColors = allColors.filter((c) => !usedColors.has(c));
+
+        // 내 패에 빠진 색상의 해당 숫자 타일이 있는지 확인
+        for (const missingColor of missingColors) {
+          const handTileIdx = player.hand.findIndex((t) => !t.isJoker && t.color === missingColor && t.value === targetVal);
+          if (handTileIdx !== -1) {
+            const myTile = player.hand.splice(handTileIdx, 1)[0];
+            const jokerTile = set[jokerIdx];
+
+            // 조커와 교체
+            set[jokerIdx] = myTile;
+
+            // 회수한 조커를 내 패에 넣고 새로운 세트를 만들 수 있는지 확인
+            player.hand.push(jokerTile);
+            const newSets = this.findIndependentSets(player.hand, true);
+            if (newSets.length > 0) {
+              for (const ns of newSets) {
+                game.board.push(ns);
+                const nsIds = new Set(ns.map((t) => t.id));
+                player.hand = player.hand.filter((t) => !nsIds.has(t.id));
+              }
+              return true;
+            } else {
+              // 조커를 이용해 새 세트를 못 만들면 롤백
+              set[jokerIdx] = jokerTile;
+              player.hand.pop();
+              player.hand.push(myTile);
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * [5장 이상 런 분할 (Run Splitting)]
+   * 예: [빨3, 빨4, 빨5, 빨6, 빨7] (5장)에 내 패의 [빨5]를 결합하여
+   * [빨3, 빨4, 빨5] (3장) + [빨5, 빨6, 빨7] (3장) 두 개의 유효한 런으로 분할!
+   */
+  private static trySplitRuns(game: RummikubGame, player: Player): boolean {
+    for (let sIdx = 0; sIdx < game.board.length; sIdx++) {
+      const set = game.board[sIdx];
+      const runRes = validateRun(set);
+      if (!runRes.valid || set.length < 5) continue;
+
+      // 일반 타일 색상
+      const normal = set.filter((t) => !t.isJoker);
+      if (normal.length === 0) continue;
+      const color = normal[0].color;
+
+      // 런 내에서 분할점 i (최소 3장, 남은 것도 최소 3장)
+      // 총 길이가 n일 때, 내 패의 타일을 하나 추가하면 총 n+1장
+      // 두 런의 길이가 각각 >= 3이어야 하므로 n+1 >= 6, 즉 n >= 5!
+      for (let splitAfter = 2; splitAfter < set.length - 2; splitAfter++) {
+        const rightVal = set[splitAfter + 1].value; // 오른쪽 런의 시작 값
+
+        // 만약 내 패에 rightVal - 1이 있다면 런 분할 가능!
+        // 왼쪽 런: set[0...splitAfter] (길이 splitAfter+1 >= 3)
+        // 오른쪽 런: [내패의 타일] + set[splitAfter+1...]
+        const neededVal = rightVal - 1;
+        const handIdx = player.hand.findIndex((t) => !t.isJoker && t.color === color && t.value === neededVal);
+
+        if (handIdx !== -1) {
+          const myTile = player.hand.splice(handIdx, 1)[0];
+          const leftRun = set.slice(0, splitAfter + 1);
+          const rightRun = [myTile, ...set.slice(splitAfter + 1)];
+
+          if (validateRun(leftRun).valid && validateRun(rightRun).valid) {
+            game.board.splice(sIdx, 1, leftRun, rightRun);
+            return true;
+          } else {
+            player.hand.push(myTile); // 롤백
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * [4장 이상 세트에서 1장 떼어와서 내 패와 결합 (Borrowing)]
+   * - 4장 그룹에서 1장 떼어가도 남은 3장은 유효
+   * - 4장 이상 런의 양끝 타일 1장 떼어가도 남은 세트는 유효
+   */
+  private static tryBorrowFromLargeSets(game: RummikubGame, player: Player): boolean {
+    for (let sIdx = 0; sIdx < game.board.length; sIdx++) {
+      const set = game.board[sIdx];
+      if (set.length < 4) continue;
+
+      // 1. 그룹인 경우 (어떤 색상이든 1장 떼어가도 됨)
+      const groupRes = validateGroup(set);
+      if (groupRes.valid) {
+        for (let i = 0; i < set.length; i++) {
+          const borrowedTile = set.splice(i, 1)[0];
+
+          // 떼어낸 타일 + 내 패 타일들로 새 세트가 만들어지는지 확인
+          const testHand = [borrowedTile, ...player.hand];
+          const newSets = this.findIndependentSets(testHand, true);
+          const setUsingBorrowed = newSets.find((s) => s.some((t) => t.id === borrowedTile.id));
+
+          if (setUsingBorrowed) {
+            // 성공! 보드에 새 세트 추가하고 패에서 낸 타일들 제거
+            game.board.push(setUsingBorrowed);
+            const usedInNewSet = new Set(setUsingBorrowed.map((t) => t.id));
+            usedInNewSet.delete(borrowedTile.id);
+            player.hand = player.hand.filter((t) => !usedInNewSet.has(t.id));
+            return true;
+          }
+
+          // 실패 시 원상복구
+          set.splice(i, 0, borrowedTile);
+        }
+      }
+
+      // 2. 런인 경우 (양 끝 타일 1장 떼어가기)
+      const runRes = validateRun(set);
+      if (runRes.valid) {
+        // 첫 번째 타일 떼어가기
+        const firstTile = set.shift()!;
+        if (validateRun(set).valid) {
+          const testHand = [firstTile, ...player.hand];
+          const newSets = this.findIndependentSets(testHand, true);
+          const setUsingFirst = newSets.find((s) => s.some((t) => t.id === firstTile.id));
+          if (setUsingFirst) {
+            game.board.push(setUsingFirst);
+            const used = new Set(setUsingFirst.map((t) => t.id));
+            used.delete(firstTile.id);
+            player.hand = player.hand.filter((t) => !used.has(t.id));
+            return true;
+          }
+        }
+        set.unshift(firstTile); // 원상복구
+
+        // 마지막 타일 떼어가기
+        const lastTile = set.pop()!;
+        if (validateRun(set).valid) {
+          const testHand = [lastTile, ...player.hand];
+          const newSets = this.findIndependentSets(testHand, true);
+          const setUsingLast = newSets.find((s) => s.some((t) => t.id === lastTile.id));
+          if (setUsingLast) {
+            game.board.push(setUsingLast);
+            const used = new Set(setUsingLast.map((t) => t.id));
+            used.delete(lastTile.id);
+            player.hand = player.hand.filter((t) => !used.has(t.id));
+            return true;
+          }
+        }
+        set.push(lastTile); // 원상복구
       }
     }
 
@@ -97,13 +391,56 @@ export class RummikubAI {
   }
 
   /**
+   * 보드 세트에 내 패의 타일을 앞/뒤에 붙이기
+   */
+  private static tryAppendToExistingSets(game: RummikubGame, player: Player): boolean {
+    let attached = false;
+
+    for (let i = player.hand.length - 1; i >= 0; i--) {
+      const tile = player.hand[i];
+      let tileAttached = false;
+
+      for (const set of game.board) {
+        // 1. 뒤에 추가
+        set.push(tile);
+        if (validateTileSet(set).valid) {
+          player.hand.splice(i, 1);
+          tileAttached = true;
+          attached = true;
+          break;
+        }
+        set.pop();
+
+        // 2. 앞에 추가
+        set.unshift(tile);
+        if (validateTileSet(set).valid) {
+          player.hand.splice(i, 1);
+          tileAttached = true;
+          attached = true;
+          break;
+        }
+        set.shift();
+      }
+
+      if (tileAttached) {
+        // 추가로 더 붙일 수 있는지 계속 탐색
+      }
+    }
+
+    return attached;
+  }
+
+  /**
    * 주어진 타일들로 만들 수 있는 독립적인 유효 세트(런/그룹) 탐색
    */
-  private static findIndependentSets(tiles: Tile[]): TileSet[] {
+  private static findIndependentSets(tiles: Tile[], allowJoker: boolean = true): TileSet[] {
     const validSets: TileSet[] = [];
     const usedIds = new Set<string>();
 
-    // 1. 그룹 탐색 (숫자별 모으기)
+    const jokers = allowJoker ? tiles.filter((t) => t.isJoker) : [];
+    const availableJokerIds = new Set(jokers.map((j) => j.id));
+
+    // 1. 그룹 탐색 (같은 숫자, 서로 다른 색상)
     const byValue = new Map<number, Tile[]>();
     for (const t of tiles) {
       if (!t.isJoker) {
@@ -113,7 +450,6 @@ export class RummikubAI {
     }
 
     byValue.forEach((groupTiles) => {
-      // 색상별 유니크 타일
       const uniqueByColor = new Map<string, Tile>();
       for (const t of groupTiles) {
         if (!usedIds.has(t.id) && !uniqueByColor.has(t.color)) {
@@ -121,14 +457,23 @@ export class RummikubAI {
         }
       }
 
+      // 조커 없이 3~4개 색상 완성
       if (uniqueByColor.size >= 3) {
         const set = Array.from(uniqueByColor.values());
         validSets.push(set);
         set.forEach((t) => usedIds.add(t.id));
+      } else if (allowJoker && uniqueByColor.size === 2 && availableJokerIds.size > 0) {
+        // 조커 1개로 그룹 완성
+        const jokerId = Array.from(availableJokerIds)[0];
+        const jokerTile = tiles.find((t) => t.id === jokerId)!;
+        const set = [...Array.from(uniqueByColor.values()), jokerTile];
+        validSets.push(set);
+        set.forEach((t) => usedIds.add(t.id));
+        availableJokerIds.delete(jokerId);
       }
     });
 
-    // 2. 런 탐색 (색상별 모으기)
+    // 2. 런 탐색 (같은 색상, 연속된 숫자)
     const byColor = new Map<string, Tile[]>();
     for (const t of tiles) {
       if (!t.isJoker && !usedIds.has(t.id)) {
@@ -139,8 +484,8 @@ export class RummikubAI {
 
     byColor.forEach((colorTiles) => {
       const sorted = [...colorTiles].sort((a, b) => a.value - b.value);
-      // 연속된 수열 찾기
       let currentRun: Tile[] = [];
+
       for (let i = 0; i < sorted.length; i++) {
         const cur = sorted[i];
         if (currentRun.length === 0) {
@@ -150,8 +495,14 @@ export class RummikubAI {
           if (cur.value === last.value + 1) {
             currentRun.push(cur);
           } else if (cur.value === last.value) {
-            // 같은 숫자는 건너뜀
-            continue;
+            continue; // 동일 숫자는 통과
+          } else if (allowJoker && cur.value === last.value + 2 && availableJokerIds.size > 0) {
+            // 숫자 1개가 빠진 경우 조커로 메우기
+            const jokerId = Array.from(availableJokerIds)[0];
+            const jokerTile = tiles.find((t) => t.id === jokerId)!;
+            currentRun.push(jokerTile);
+            currentRun.push(cur);
+            availableJokerIds.delete(jokerId);
           } else {
             if (currentRun.length >= 3) {
               validSets.push([...currentRun]);
@@ -161,6 +512,7 @@ export class RummikubAI {
           }
         }
       }
+
       if (currentRun.length >= 3) {
         validSets.push([...currentRun]);
         currentRun.forEach((t) => usedIds.add(t.id));
@@ -170,54 +522,9 @@ export class RummikubAI {
     return validSets;
   }
 
-  /**
-   * 보드에 있는 기존 세트들에 핸드 타일 추가 시도
-   */
-  private static tryAppendToExistingSets(game: RummikubGame, player: Player): boolean {
-    let attached = false;
-
-    // 핸드의 각 타일에 대해 보드 세트에 붙일 수 있는지 검사
-    for (let i = player.hand.length - 1; i >= 0; i--) {
-      const tile = player.hand[i];
-      let tileAttached = false;
-
-      for (const set of game.board) {
-        // 세트 앞이나 뒤에 붙여보기
-        // 1. 뒤에 추가
-        set.push(tile);
-        if (validateGroup(set).valid || validateRun(set).valid) {
-          player.hand.splice(i, 1);
-          tileAttached = true;
-          attached = true;
-          break;
-        }
-        set.pop(); // 원복
-
-        // 2. 앞에 추가
-        set.unshift(tile);
-        if (validateGroup(set).valid || validateRun(set).valid) {
-          player.hand.splice(i, 1);
-          tileAttached = true;
-          attached = true;
-          break;
-        }
-        set.shift(); // 원복
-      }
-
-      if (tileAttached) {
-        // 한 장 붙인 후 추가로 더 붙일 수 있는지 계속 탐색
-      }
-    }
-
-    return attached;
-  }
-
-  /**
-   * 부분집합 생성 도우미
-   */
   private static getSubsets<T>(array: T[]): T[][] {
     const result: T[][] = [];
-    const total = 1 << array.length;
+    const total = 1 << Math.min(array.length, 12); // 최대 12개 제한으로 과도한 연산 방지
     for (let i = 1; i < total; i++) {
       const subset: T[] = [];
       for (let j = 0; j < array.length; j++) {

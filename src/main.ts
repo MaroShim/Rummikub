@@ -173,10 +173,21 @@ function renderPlayers(): void {
 
     const meldBadge = player.hasInitialMeld ? '✓ 등록완료' : '미등록';
 
+    let diffBadge = '';
+    if (player.isAi && player.difficulty) {
+      const diffLabelMap: Record<string, string> = {
+        beginner: '초급',
+        intermediate: '중급',
+        expert: '고급',
+      };
+      const label = diffLabelMap[player.difficulty] || player.difficulty;
+      diffBadge = `<span class="diff-tag ${player.difficulty}">${label}</span>`;
+    }
+
     card.innerHTML = `
       <div class="player-avatar">${avatar}</div>
       <div class="player-meta">
-        <span class="p-name">${player.name}${isMe ? ' (나)' : ''}</span>
+        <span class="p-name">${player.name}${isMe ? ' (나)' : ''} ${diffBadge}</span>
         <span class="p-info">${player.hand.length}장 | ${meldBadge}</span>
       </div>
     `;
@@ -531,6 +542,7 @@ function broadcastGameState(): void {
         id: pl.id,
         name: pl.name,
         isAi: pl.isAi,
+        difficulty: pl.difficulty,
         handCount: pl.hand.length,
         hasInitialMeld: pl.hasInitialMeld,
       })),
@@ -566,6 +578,7 @@ net.onMessageReceived = (msg: NetworkMessage) => {
       id: pl.id,
       name: pl.name,
       isAi: pl.isAi,
+      difficulty: pl.difficulty,
       hand: pl.id === myPlayerId ? msg.payload.myHand : new Array(pl.handCount).fill({} as Tile),
       hasInitialMeld: pl.hasInitialMeld,
     }));
@@ -587,6 +600,7 @@ net.onMessageReceived = (msg: NetworkMessage) => {
       id: pl.id,
       name: pl.name,
       isAi: pl.isAi,
+      difficulty: pl.difficulty,
       hand: pl.id === myPlayerId ? msg.payload.myHand : new Array(pl.handCount).fill({} as Tile),
       hasInitialMeld: pl.hasInitialMeld,
     }));
@@ -769,11 +783,18 @@ btnStartOnlineGame.addEventListener('click', () => {
   // 3. 봇 추가 옵션이 켜져 있고 4인 미만이면 봇 채우기
   if (chkFillBots.checked && game.players.length < 4) {
     const needed = 4 - game.players.length;
-    for (let b = 1; b <= needed; b++) {
+    const botConfigs: { name: string; difficulty: 'beginner' | 'intermediate' | 'expert' }[] = [
+      { name: '루키봇(초급)', difficulty: 'beginner' },
+      { name: '베테랑봇(중급)', difficulty: 'intermediate' },
+      { name: '마스터봇(고급)', difficulty: 'expert' },
+    ];
+    for (let b = 0; b < needed; b++) {
+      const config = botConfigs[b] || { name: `봇 ${b + 1}`, difficulty: 'beginner' };
       game.players.push({
-        id: `bot-${b}`,
-        name: `봇 ${b}`,
+        id: `bot-${b + 1}`,
+        name: config.name,
         isAi: true,
+        difficulty: config.difficulty,
         hand: game.deck.splice(0, 14),
         hasInitialMeld: false,
       });
@@ -798,6 +819,7 @@ btnStartOnlineGame.addEventListener('click', () => {
           id: pl.id,
           name: pl.name,
           isAi: pl.isAi,
+          difficulty: pl.difficulty,
           handCount: pl.hand.length,
           hasInitialMeld: pl.hasInitialMeld,
         })),

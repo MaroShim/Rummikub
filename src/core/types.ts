@@ -9,10 +9,13 @@ export interface Tile {
 
 export type TileSet = Tile[];
 
+export type BotDifficulty = 'beginner' | 'intermediate' | 'expert';
+
 export interface Player {
   id: string;
   name: string;
   isAi: boolean;
+  difficulty?: BotDifficulty;
   hand: Tile[];
   hasInitialMeld: boolean;
 }
