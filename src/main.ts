@@ -247,7 +247,21 @@ function renderPlayers(): void {
 function renderBoard(): void {
   boardContainerEl.innerHTML = '';
 
-  if (game.board.length === 0) {
+  const activeSets = game.board.filter((s) => s.length > 0);
+  const setCount = activeSets.length;
+
+  // 보드에 등록된 세트가 많아져서 공간이 많이 필요해지면 타일 크기 단계적 축소
+  if (setCount >= 16) {
+    boardContainerEl.dataset.density = 'ultra-dense';
+  } else if (setCount >= 11) {
+    boardContainerEl.dataset.density = 'dense';
+  } else if (setCount >= 7) {
+    boardContainerEl.dataset.density = 'compact';
+  } else {
+    delete boardContainerEl.dataset.density;
+  }
+
+  if (activeSets.length === 0) {
     const emptyMsg = document.createElement('div');
     emptyMsg.className = 'empty-board-msg';
     emptyMsg.innerHTML = `보드에 등록된 세트가 없습니다.<br />첫 등록(자신의 타일 합계 30점 이상)을 완성해 테이블로 드래그하세요!`;
