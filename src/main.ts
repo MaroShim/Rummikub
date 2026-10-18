@@ -72,6 +72,13 @@ const inputJoinCode = document.getElementById('input-join-code') as HTMLInputEle
 const btnSubmitJoin = document.getElementById('btn-submit-join') as HTMLButtonElement;
 const joinStatusMsg = document.getElementById('join-status-msg') as HTMLElement;
 
+// Non-modal 대형 중앙 승리 배너 참조
+const victoryBannerEl = document.getElementById('victory-banner') as HTMLElement;
+const victoryTitleEl = document.getElementById('victory-title') as HTMLElement;
+const victorySubtitleEl = document.getElementById('victory-subtitle') as HTMLElement;
+const btnCloseVictory = document.getElementById('btn-close-victory') as HTMLButtonElement;
+const btnVictoryNewGame = document.getElementById('btn-victory-new-game') as HTMLButtonElement;
+
 // 드래그 중인 타일의 정보
 interface DragSource {
   location: 'rack' | 'board';
@@ -101,10 +108,28 @@ function setOnlineUIState(isOnline: boolean, roomCode?: string): void {
   }
 }
 
+// ================== Non-modal 승리 배너 관리 ==================
+function showVictoryBanner(winner: Player): void {
+  const isMe = winner.id === myPlayerId;
+  if (isMe) {
+    victoryTitleEl.textContent = '🎉 축하합니다! 승리하셨습니다! 🎉';
+    victorySubtitleEl.textContent = `${net.myName}님이 모든 타일을 가장 먼저 내려놓아 최종 1등을 달성했습니다!`;
+  } else {
+    victoryTitleEl.textContent = `🏆 ${winner.name}님이 승리했습니다!`;
+    victorySubtitleEl.textContent = '게임이 종료되었습니다. 멋진 승부였습니다!';
+  }
+  victoryBannerEl.classList.remove('hidden');
+}
+
+function hideVictoryBanner(): void {
+  victoryBannerEl.classList.add('hidden');
+}
+
 // ================== 게임 초기화 (오프라인 1인용) ==================
 function initOfflineGame(): void {
   myPlayerId = 'player-1';
   setOnlineUIState(false);
+  hideVictoryBanner();
 
   const botCount = parseInt(botCountSelectEl.value, 10) || 3;
   game.start(botCount);
@@ -540,8 +565,8 @@ btnEndTurn.addEventListener('click', () => {
 });
 
 function handleTurnSuccess(): void {
-  if (game.isGameOver) {
-    showNotification(`🏆 축하합니다! ${game.winner?.name}님이 승리하셨습니다!`, 'success');
+  if (game.isGameOver && game.winner) {
+    showVictoryBanner(game.winner);
   } else {
     showNotification('턴을 확정했습니다! 다음 플레이어로 넘어갑니다.', 'success');
   }
@@ -590,6 +615,7 @@ net.onMessageReceived = (msg: NetworkMessage) => {
   if (msg.type === 'START_GAME') {
     myPlayerId = net.myPeerId;
     setOnlineUIState(true, net.roomCode);
+    hideVictoryBanner();
 
     // 호스트가 보내준 게임 상태로 초기화
     game.board = msg.payload.board;
@@ -632,8 +658,8 @@ net.onMessageReceived = (msg: NetworkMessage) => {
     game.startTurn();
     renderAll();
 
-    if (game.isGameOver) {
-      showNotification(`🏆 게임 종료! ${game.winner?.name}님이 승리했습니다!`, 'success');
+    if (game.isGameOver && game.winner) {
+      showVictoryBanner(game.winner);
     }
   } else if (msg.type === 'ACTION_DRAW' && net.isHost) {
     // 호스트: 게스트의 드로우 처리
@@ -712,7 +738,10 @@ async function checkAndRunOnlineAiTurns(): Promise<void> {
 
     broadcastGameState();
 
-    if (game.isGameOver) break;
+    if (game.isGameOver) {
+      if (game.winner) showVictoryBanner(game.winner);
+      break;
+    }
     await new Promise((r) => setTimeout(r, 200));
   }
 }
@@ -805,6 +834,7 @@ btnStartOnlineGame.addEventListener('click', () => {
   isOnlineMode = true;
   myPlayerId = net.myPeerId;
   botSelectWrapEl.style.display = 'none';
+  hideVictoryBanner();
 
   // 1. 호스트의 게임 인스턴스 초기화
   game.board = [];
@@ -933,6 +963,24 @@ btnNewGame.addEventListener('click', () => {
   }
 });
 
+// Non-modal 승리 배너 이벤트 (닫기 및 새 게임)
+btnCloseVictory.addEventListener('click', () => {
+  hideVictoryBanner();
+});
+
+btnVictoryNewGame.addEventListener('click', () => {
+  hideVictoryBanner();
+  if (isOnlineMode) {
+    if (net.isHost) {
+      modalCreateRoom.classList.remove('hidden');
+    } else {
+      showNotification('방장이 새 게임을 시작하기를 기다리는 중입니다.', 'info');
+    }
+  } else {
+    initOfflineGame();
+  }
+});
+
 botCountSelectEl.addEventListener('change', () => {
   if (!isOnlineMode) {
     initOfflineGame();
@@ -1032,7 +1080,7 @@ async function processAiTurns(): Promise<void> {
     renderAll();
 
     if (game.isGameOver) {
-      showNotification(`🎮 게임 종료! ${game.winner?.name}님이 승리했습니다!`, 'success');
+      if (game.winner) showVictoryBanner(game.winner);
       break;
     }
 

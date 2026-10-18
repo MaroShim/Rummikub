@@ -235,6 +235,19 @@
           </div>
         </div>
       </div>
+
+      <!-- Non-modal 화면 중앙 대형 승리 배너 (지속 표시) -->
+      <div id="victory-banner" class="victory-banner hidden">
+        <div class="victory-content">
+          <button id="btn-close-victory" class="victory-close-btn" title="배너 닫기">&times;</button>
+          <div class="victory-icon-large">🏆</div>
+          <div class="victory-title" id="victory-title">축하합니다! 승리하셨습니다!</div>
+          <div class="victory-subtitle" id="victory-subtitle">모든 타일을 소진하여 최종 1등을 달성했습니다!</div>
+          <div class="victory-actions">
+            <button id="btn-victory-new-game" class="btn btn-success btn-large">🔄 새 게임 시작</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>
