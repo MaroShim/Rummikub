@@ -691,16 +691,18 @@ async function checkAndRunOnlineAiTurns(): Promise<void> {
   while (game.getCurrentPlayer().isAi && !game.isGameOver) {
     const bot = game.getCurrentPlayer();
     const botStartTime = Date.now();
+    const budgetMs = RummikubAI.getTimeoutForDifficulty(bot.difficulty);
+    const budgetSec = Math.ceil(budgetMs / 1000);
 
     renderHeader();
     renderPlayers();
 
-    // 봇 생각 시간(30초 제한) 실시간 카운트다운 타이머
+    // 봇 생각 시간(난이도별 맞춤 제한) 실시간 카운트다운 타이머
     const timerInterval = window.setInterval(() => {
       const elapsed = Math.floor((Date.now() - botStartTime) / 1000);
-      const remaining = Math.max(0, 30 - elapsed);
+      const remaining = Math.max(0, budgetSec - elapsed);
       turnPlayerNameEl.textContent = `🤖 ${bot.name} 생각 중... (${remaining}초 남음)`;
-    }, 1000);
+    }, 250);
 
     try {
       await RummikubAI.playTurn(game, bot);
@@ -711,6 +713,7 @@ async function checkAndRunOnlineAiTurns(): Promise<void> {
     broadcastGameState();
 
     if (game.isGameOver) break;
+    await new Promise((r) => setTimeout(r, 200));
   }
 }
 
@@ -1007,16 +1010,18 @@ async function processAiTurns(): Promise<void> {
   while (game.getCurrentPlayer().isAi && !game.isGameOver) {
     const bot = game.getCurrentPlayer();
     const botStartTime = Date.now();
+    const budgetMs = RummikubAI.getTimeoutForDifficulty(bot.difficulty);
+    const budgetSec = Math.ceil(budgetMs / 1000);
 
     renderHeader();
     renderPlayers();
 
-    // 봇 생각 시간(30초 제한) 실시간 카운트다운 타이머
+    // 봇 생각 시간(난이도별 맞춤 제한) 실시간 카운트다운 타이머
     const timerInterval = window.setInterval(() => {
       const elapsed = Math.floor((Date.now() - botStartTime) / 1000);
-      const remaining = Math.max(0, 30 - elapsed);
+      const remaining = Math.max(0, budgetSec - elapsed);
       turnPlayerNameEl.textContent = `🤖 ${bot.name} 생각 중... (${remaining}초 남음)`;
-    }, 1000);
+    }, 250);
 
     try {
       await RummikubAI.playTurn(game, bot);
@@ -1030,6 +1035,8 @@ async function processAiTurns(): Promise<void> {
       showNotification(`🎮 게임 종료! ${game.winner?.name}님이 승리했습니다!`, 'success');
       break;
     }
+
+    await new Promise((r) => setTimeout(r, 200));
   }
 
   isProcessingTurn = false;
