@@ -393,32 +393,36 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 2px dashed #475569;
-  border-radius: 8px;
-  height: 40px;
-  padding: 0 16px;
-  min-width: 170px;
-  color: #cbd5e1;
-  font-size: 14px;
-  font-weight: 600;
-  background: rgba(30, 41, 59, 0.65);
+  gap: 10px;
+  border: 2.5px dashed #64748b;
+  border-radius: 10px;
+  height: 50px;
+  padding: 0 24px;
+  min-width: 240px;
+  max-width: 320px;
+  flex: 0 1 280px;
+  color: #f1f5f9;
+  font-size: 15px;
+  font-weight: 700;
+  background: rgba(30, 41, 59, 0.75);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   flex-shrink: 0;
+  letter-spacing: -0.2px;
 }
 
 .new-set-zone .plus-icon {
-  font-size: 16px;
+  font-size: 20px;
+  line-height: 1;
 }
 
 .new-set-zone:hover, .new-set-zone.drag-over {
   border-color: var(--accent-gold);
   color: var(--accent-gold);
-  background: rgba(245, 158, 11, 0.18);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
 }
 
 /* ================== 알림 팝업 (Toast / Floating Popup) ================== */
@@ -1012,15 +1016,16 @@ body.dark-mode .board-wrapper {
     border-radius: 6px;
   }
   .new-set-zone {
-    height: 36px;
+    height: 44px;
     width: 100%;
-    font-size: 13px;
-    gap: 6px;
-    border-radius: 6px;
-    padding: 0 10px;
+    max-width: none;
+    font-size: 14px;
+    gap: 8px;
+    border-radius: 8px;
+    padding: 0 14px;
   }
   .new-set-zone .plus-icon {
-    font-size: 15px;
+    font-size: 18px;
   }
   .tile {
     width: 32px;
@@ -1159,16 +1164,17 @@ body.dark-mode .board-wrapper {
     gap: 2px;
   }
   .new-set-zone {
-    height: 26px;
+    height: 32px;
     width: auto;
-    font-size: 11px;
-    gap: 4px;
-    padding: 0 8px;
-    border-radius: 4px;
+    font-size: 12px;
+    gap: 6px;
+    padding: 0 12px;
+    border-radius: 6px;
     min-width: auto;
+    max-width: none;
   }
   .new-set-zone .plus-icon {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .player-dock {

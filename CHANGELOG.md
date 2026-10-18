@@ -27,10 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed mid-game dynamic tile resizing logic completely to eliminate screen flickering or visual layout jumping.
   - Reduced default starting desktop tile dimensions from 64×90px to a balanced, comfortable **54×76px** (and laptop to 48×68px).
   - Ensures ample board space from the start while preserving 1:1 consistent tile dimensions between board sets and the player rack.
-- **"New Set" Drop Zone Relocated to Control Row (Scroll-Free Table)**:
+- **"New Set" Drop Zone Relocated to Control Row (Scroll-Free Table & Enlarged Target)**:
   - Moved the "Create New Set" drop target from the table area directly into the rack controls row alongside sorting and turn buttons.
   - Frees up substantial vertical space (~60px) inside the common table container, allowing sets to be visible without vertical scrolling throughout the match.
-  - Greatly shortens dragging and clicking distance between player tiles and the new-set creation target.
+  - Enlarged the drop zone both horizontally (min-width: 240px, up to 320px) and vertically (height: 50px) with larger icons and bold typography for effortless tile dropping.
 - **Persistent Non-Modal Victory Banner**:
   - Replaced blocking modal alerts with an eye-catching, celebratory non-modal victory banner (`🏆 축하합니다! [플레이어] 승리하셨습니다!`) positioned prominently at the screen center.
 - **High-Contrast Dark Mode**:
