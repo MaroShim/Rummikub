@@ -321,7 +321,7 @@ body {
   border-radius: 12px;
   padding: 14px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap-reverse;
   align-content: flex-start;
   gap: 16px;
   position: relative;
