@@ -112,10 +112,10 @@ function setOnlineUIState(isOnline: boolean, roomCode?: string): void {
 function showVictoryBanner(winner: Player): void {
   const isMe = winner.id === myPlayerId;
   if (isMe) {
-    victoryTitleEl.textContent = '🎉 축하합니다! 승리하셨습니다! 🎉';
+    victoryTitleEl.innerHTML = '축하합니다!<br />승리하셨습니다!';
     victorySubtitleEl.textContent = `${net.myName}님이 모든 타일을 가장 먼저 내려놓아 최종 1등을 달성했습니다!`;
   } else {
-    victoryTitleEl.textContent = `🏆 ${winner.name}님이 승리했습니다!`;
+    victoryTitleEl.innerHTML = `${winner.name}님이<br />승리했습니다!`;
     victorySubtitleEl.textContent = '게임이 종료되었습니다. 멋진 승부였습니다!';
   }
   victoryBannerEl.classList.remove('hidden');

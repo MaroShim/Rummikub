@@ -31,8 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Moved the "Create New Set" drop target from the table area directly into the rack controls row alongside sorting and turn buttons.
   - Frees up substantial vertical space (~60px) inside the common table container, allowing sets to be visible without vertical scrolling throughout the match.
   - Enlarged the drop zone both horizontally (min-width: 240px, up to 320px) and vertically (height: 50px) with larger icons and bold typography for effortless tile dropping.
-- **Persistent Non-Modal Victory Banner**:
-  - Replaced blocking modal alerts with an eye-catching, celebratory non-modal victory banner (`🏆 축하합니다! [플레이어] 승리하셨습니다!`) positioned prominently at the screen center.
+- **Persistent Non-Modal Victory Banner (Semantic Two-Line Title)**:
+  - Replaced blocking modal alerts with an eye-catching, celebratory non-modal victory banner positioned prominently at the screen center.
+  - Maintained compact dialog dimensions (480px) and cleanly structured the title into two semantic lines (`축하합니다!` / `승리하셨습니다!` or `[플레이어]님이` / `승리했습니다!`), preventing arbitrary text splitting.
 - **High-Contrast Dark Mode**:
   - Added full dark mode toggle with persistent state.
   - Tiles feature colorful background fills (Red, Yellow/Amber, Green, Blue/Cyan) with tailored readable text colors and unique dark-theme joker styling.
