@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Responsive Layout & Fullscreen Support**:
   - Implemented one-click native Fullscreen API integration.
   - Optimized layout for mobile devices (iPhone landscape & portrait) and high-resolution desktop monitors (1.5x scaled tiles: 64x90px).
+- **Player Name Duplicate Badge Fix**:
+  - Resolved an issue where player cards rendered `(나)(나)` duplicate badges by storing clean names in state and guarding against redundant label suffixes.
 
 ---
 

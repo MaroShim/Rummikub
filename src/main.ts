@@ -135,7 +135,7 @@ function initOfflineGame(): void {
   game.start(botCount);
   // 내 이름 반영
   if (game.players.length > 0) {
-    game.players[0].name = `${net.myName} (나)`;
+    game.players[0].name = net.myName;
   }
   renderAll();
   showNotification(`🎮 1인용 게임이 시작되었습니다! (봇 ${botCount}명)`, 'info');
@@ -214,7 +214,7 @@ function renderPlayers(): void {
     card.innerHTML = `
       <div class="player-avatar">${avatar}</div>
       <div class="player-meta">
-        <span class="p-name">${player.name}${isMe ? ' (나)' : ''} ${diffBadge}</span>
+        <span class="p-name">${player.name}${isMe && !player.name.includes('(나)') ? ' (나)' : ''} ${diffBadge}</span>
         <span class="p-info">${player.hand.length}장 | ${meldBadge}</span>
       </div>
     `;
@@ -768,7 +768,7 @@ btnSaveName.addEventListener('click', () => {
     net.setPlayerName(newName);
     updatePlayerNameDisplay();
     if (!isOnlineMode && game.players.length > 0) {
-      game.players[0].name = `${newName} (나)`;
+      game.players[0].name = newName;
       renderPlayers();
     }
     showNotification(`이름이 '${newName}'(으)로 저장되었습니다.`, 'success');
