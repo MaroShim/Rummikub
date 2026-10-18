@@ -23,12 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🎨 User Interface & Board UX
 - **Bottom-Left Upward Board Stacking**:
   - Reconfigured the shared table (`.board-container`) flex layout (`flex-wrap: wrap-reverse; align-content: flex-start;`) so sets begin at the bottom-left corner and stack upwards row by row.
-- **Crowded Board Tile Scaling**:
-  - Dynamically scales down board tile dimensions based on active set count:
-    - Default (1–6 sets): Full size
-    - Compact (7–10 sets): ~85% scale
-    - Dense (11–15 sets): ~70% scale
-    - Ultra-Dense (16+ sets): ~55% scale with ultra-compact padding and fonts.
+- **Adaptive Board Overflow-Based Tile Scaling**:
+  - Replaced rigid set-count thresholds with real-time physical overflow detection (`scrollHeight` vs `clientHeight`).
+  - Tiles **always remain 100% full size as long as there is sufficient space on the table**, regardless of set count.
+  - Tiles only scale down progressively (`compact` ➔ `dense` ➔ `ultra-dense`) when table rows actually begin to overflow the container, and automatically restore to full size when space frees up.
+  - Includes responsive window resize recalculation.
 - **"New Set" Drop Zone Optimization**:
   - Relocated the "Create New Set" drop area to the bottom center of the table for natural drag-and-drop ergonomics.
   - Balanced drop target height to a sleek 52px for optimal table view space.

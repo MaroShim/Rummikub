@@ -248,54 +248,88 @@ function renderBoard(): void {
   boardContainerEl.innerHTML = '';
 
   const activeSets = game.board.filter((s) => s.length > 0);
-  const setCount = activeSets.length;
-
-  // 보드에 등록된 세트가 많아져서 공간이 많이 필요해지면 타일 크기 단계적 축소
-  if (setCount >= 16) {
-    boardContainerEl.dataset.density = 'ultra-dense';
-  } else if (setCount >= 11) {
-    boardContainerEl.dataset.density = 'dense';
-  } else if (setCount >= 7) {
-    boardContainerEl.dataset.density = 'compact';
-  } else {
-    delete boardContainerEl.dataset.density;
-  }
 
   if (activeSets.length === 0) {
+    delete boardContainerEl.dataset.density;
     const emptyMsg = document.createElement('div');
     emptyMsg.className = 'empty-board-msg';
     emptyMsg.innerHTML = `보드에 등록된 세트가 없습니다.<br />첫 등록(자신의 타일 합계 30점 이상)을 완성해 테이블로 드래그하세요!`;
     boardContainerEl.appendChild(emptyMsg);
-  } else {
-    game.board.forEach((set, sIdx) => {
-      if (set.length === 0) return;
-
-      const setEl = document.createElement('div');
-      setEl.className = 'board-set';
-      setEl.dataset.setIndex = sIdx.toString();
-
-      const validation = validateTileSet(set);
-      if (!validation.valid) {
-        setEl.classList.add('invalid');
-        setEl.title = validation.reason || '규칙에 맞지 않는 세트입니다.';
-      } else {
-        setEl.title = `${validation.type === 'group' ? '그룹' : '런'} (합: ${validation.score}점)`;
-      }
-
-      set.forEach((tile, tIdx) => {
-        const tileEl = createTileElement(tile, {
-          location: 'board',
-          setIndex: sIdx,
-          tileIndex: tIdx,
-          tileId: tile.id,
-        });
-        setEl.appendChild(tileEl);
-      });
-
-      bindSetDropEvents(setEl, sIdx);
-      boardContainerEl.appendChild(setEl);
-    });
+    return;
   }
+
+  game.board.forEach((set, sIdx) => {
+    if (set.length === 0) return;
+
+    const setEl = document.createElement('div');
+    setEl.className = 'board-set';
+    setEl.dataset.setIndex = sIdx.toString();
+
+    const validation = validateTileSet(set);
+    if (!validation.valid) {
+      setEl.classList.add('invalid');
+      setEl.title = validation.reason || '규칙에 맞지 않는 세트입니다.';
+    } else {
+      setEl.title = `${validation.type === 'group' ? '그룹' : '런'} (합: ${validation.score}점)`;
+    }
+
+    set.forEach((tile, tIdx) => {
+      const tileEl = createTileElement(tile, {
+        location: 'board',
+        setIndex: sIdx,
+        tileIndex: tIdx,
+        tileId: tile.id,
+      });
+      setEl.appendChild(tileEl);
+    });
+
+    bindSetDropEvents(setEl, sIdx);
+    boardContainerEl.appendChild(setEl);
+  });
+
+  // 실제로 테이블에 타일을 놓을 공간이 부족하여 넘칠 때만 타일 크기를 단계적으로 축소
+  adjustBoardDensity();
+}
+
+/**
+ * 공용 테이블에 타일을 놓을 공간이 충분한지 실제 물리적 높이(scrollHeight vs clientHeight)를 체크하여,
+ * 공간이 모자라 넘칠 때만 점진적으로 타일 크기를 축소(compact -> dense -> ultra-dense)합니다.
+ * 공간이 여유 있으면 가장 큰 기본 타일 크기를 그대로 유지합니다.
+ */
+function adjustBoardDensity(): void {
+  const activeSets = game.board.filter((s) => s.length > 0);
+  if (activeSets.length === 0) {
+    delete boardContainerEl.dataset.density;
+    return;
+  }
+
+  // 1. 기본 최대 크기로 설정하여 먼저 가용 공간 측정
+  delete boardContainerEl.dataset.density;
+
+  // 브라우저 레이아웃 오차 감안 4px 버퍼
+  const isOverflowing = () => {
+    return boardContainerEl.scrollHeight > boardContainerEl.clientHeight + 4;
+  };
+
+  // 기본 크기에서도 테이블 공간이 충분하면 절대 줄이지 않음
+  if (!isOverflowing()) {
+    return;
+  }
+
+  // 공간 부족 시 1단계 축소 (compact)
+  boardContainerEl.dataset.density = 'compact';
+  if (!isOverflowing()) {
+    return;
+  }
+
+  // 여전히 공간 부족 시 2단계 축소 (dense)
+  boardContainerEl.dataset.density = 'dense';
+  if (!isOverflowing()) {
+    return;
+  }
+
+  // 최종 축소 (ultra-dense)
+  boardContainerEl.dataset.density = 'ultra-dense';
 }
 
 function renderRack(): void {
@@ -1152,3 +1186,7 @@ btnThemeToggle.addEventListener('click', () => {
 initTheme();
 initOfflineGame();
 checkUrlRoomParam();
+
+// 화면 크기 변경 시 테이블 여유 공간에 맞추어 타일 밀도 재계산
+window.addEventListener('resize', adjustBoardDensity);
+

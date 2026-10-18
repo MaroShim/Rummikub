@@ -289,8 +289,9 @@ body {
   flex-direction: column;
   padding: 12px 16px;
   background: radial-gradient(circle at 50% 50%, #1e293b 0%, var(--table-bg) 100%);
-  overflow-y: auto;
+  overflow: hidden;
   position: relative;
+  min-height: 0;
 }
 
 .board-header {
@@ -298,6 +299,7 @@ body {
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .board-header h2 {
@@ -315,7 +317,7 @@ body {
 
 .board-container {
   flex: 1;
-  min-height: 220px;
+  min-height: 0;
   background: rgba(15, 23, 42, 0.4);
   border: 2px dashed #334155;
   border-radius: 12px;
@@ -326,6 +328,20 @@ body {
   gap: 16px;
   position: relative;
   transition: border-color 0.2s ease, background-color 0.2s ease;
+  overflow-y: auto;
+}
+
+.board-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.board-container::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+.board-container::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .board-container.drag-over {
