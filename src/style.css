@@ -488,41 +488,51 @@ body {
   box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
 }
 
-/* ================== 알림 배너 ================== */
+/* ================== 알림 팝업 (Toast / Floating Popup) ================== */
 .notification-bar {
-  display: none;
-  padding: 11px 24px;
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translate(-50%, -15px) scale(0.96);
+  z-index: 2500;
+  padding: 10px 24px;
   font-size: 15px;
   text-align: center;
   font-weight: 600;
-  animation: slideDown 0.2s ease-out;
+  border-radius: 9999px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+  max-width: 90vw;
+  line-height: 1.4;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .notification-bar.active {
-  display: block;
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0) scale(1);
 }
 
 .notification-bar.error {
-  background: #7f1d1d;
-  color: #fecaca;
-  border-top: 1px solid #ef4444;
+  background: rgba(127, 29, 29, 0.95);
+  color: #fef2f2;
+  border: 1.5px solid #ef4444;
 }
 
 .notification-bar.info {
-  background: #1e3a8a;
-  color: #bfdbfe;
-  border-top: 1px solid #3b82f6;
+  background: rgba(30, 58, 138, 0.95);
+  color: #eff6ff;
+  border: 1.5px solid #3b82f6;
 }
 
 .notification-bar.success {
-  background: #064e3b;
-  color: #a7f3d0;
-  border-top: 1px solid #10b981;
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  background: rgba(6, 78, 59, 0.95);
+  color: #ecfdf5;
+  border: 1.5px solid #10b981;
 }
 
 /* ================== 하단 플레이어 도크 (타일 랙) ================== */
@@ -1128,6 +1138,12 @@ body.dark-mode .board-wrapper {
     padding: 6px;
     gap: 4px;
   }
+
+  .notification-bar {
+    top: 68px;
+    font-size: 13px;
+    padding: 7px 18px;
+  }
 }
 
 /* ================== 모바일 가로 모드 (아이폰/스마트폰 가로모드: max-height: 520px) ================== */
@@ -1250,6 +1266,12 @@ body.dark-mode .board-wrapper {
     max-height: 82px;
     padding: 4px;
     gap: 4px;
+  }
+
+  .notification-bar {
+    top: 34px;
+    font-size: 11px;
+    padding: 4px 14px;
   }
 }
 

@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **High-Contrast Dark Mode**:
   - Added full dark mode toggle with persistent state.
   - Tiles feature colorful background fills (Red, Yellow/Amber, Green, Blue/Cyan) with tailored readable text colors and unique dark-theme joker styling.
+- **Floating Toast Notification Popups**:
+  - Replaced inline document-flow banner with an overlay floating pill toast (`position: fixed; z-index: 2500;`).
+  - Completely prevents the table and board tiles from jumping or shifting vertically when messages appear and disappear.
 - **Responsive Layout & Fullscreen Support**:
   - Implemented one-click native Fullscreen API integration.
   - Optimized layout for mobile devices (iPhone landscape & portrait) and high-resolution desktop monitors (1.5x scaled tiles: 64x90px).
