@@ -25,7 +25,7 @@ An interactive, responsive HTML5 & TypeScript web application for the classic bo
 - **🎨 Dynamic Board & Intuitive Tile Stacking**:
   - **Bottom-Left Upward Stacking**: Registered sets on the common table begin at the bottom-left corner and stack row by row upwards.
   - **Balanced & Consistent Tile Sizing**: Clean 54×76px starting tile dimensions with 1:1 matching rack sizing, eliminating any mid-game resize flickering.
-  - **Optimized "New Set" Zone**: Slim, ergonomically positioned drop target at the bottom center of the table.
+  - **Optimized "New Set" Zone**: Placed directly in the rack control row alongside sort & action buttons, maximizing vertical table space for a scroll-free experience.
 - **🌙 High-Contrast Colorful Dark Mode**:
   - Toggle between clean Light theme and vibrant Dark theme.
   - In Dark Mode, tiles feature colorful vivid backgrounds (Red, Lemon Yellow, Emerald Green, Sky Blue) with high-contrast text and custom dark joker styling.

@@ -79,14 +79,6 @@
             보드에 등록된 세트가 없습니다.<br />첫 등록(자신의 타일 합계 30점 이상)을 완성해 테이블로 드래그하세요!
           </div>
         </div>
-
-        <!-- 공용 테이블 가운데 아랫쪽: 새 세트 만들기 드롭존 -->
-        <div class="new-set-bar">
-          <div class="new-set-zone" id="new-set-zone">
-            <span class="plus-icon">➕</span>
-            <span>새 세트 만들기 (여기에 타일 놓기)</span>
-          </div>
-        </div>
       </main>
 
       <!-- 메시지 및 알림 배너 -->
@@ -99,6 +91,12 @@
           <div class="rack-title">
             내 타일 거치대 (<span id="hand-count">0</span>장)
             <span id="meld-status" class="badge badge-unmelded">첫 등록 필요 (30점 이상)</span>
+          </div>
+
+          <!-- 새 세트 만들기 드롭존 (컨트롤 바 라인) -->
+          <div class="new-set-zone" id="new-set-zone" title="타일을 여기로 드래그하거나 클릭하여 새 세트를 만듭니다">
+            <span class="plus-icon">➕</span>
+            <span>새 세트 만들기</span>
           </div>
 
           <div class="dock-buttons">
