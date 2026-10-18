@@ -24,13 +24,13 @@ An interactive, responsive HTML5 & TypeScript web application for the classic bo
   - **30-Second Think Guard**: Non-blocking async thinking ticks (`requestAnimationFrame`/`setTimeout`) prevent UI freezing, backed by a real-time countdown timer.
 - **🎨 Dynamic Board & Intuitive Tile Stacking**:
   - **Bottom-Left Upward Stacking**: Registered sets on the common table begin at the bottom-left corner and stack row by row upwards.
-  - **Crowded Board Auto-Scaling**: As sets multiply on the board, tiles automatically scale down through 4 responsive tiers (`default` ➔ `compact` ➔ `dense` ➔ `ultra-dense`) to prevent overcrowding.
+  - **Balanced & Consistent Tile Sizing**: Clean 54×76px starting tile dimensions with 1:1 matching rack sizing, eliminating any mid-game resize flickering.
   - **Optimized "New Set" Zone**: Slim, ergonomically positioned drop target at the bottom center of the table.
 - **🌙 High-Contrast Colorful Dark Mode**:
   - Toggle between clean Light theme and vibrant Dark theme.
   - In Dark Mode, tiles feature colorful vivid backgrounds (Red, Lemon Yellow, Emerald Green, Sky Blue) with high-contrast text and custom dark joker styling.
 - **📱 Fully Responsive Design**:
-  - Scaled up for large desktop monitors (64×90px tiles).
+  - Optimized for desktop monitors (54×76px tiles) and laptops (48×68px).
   - Optimized for mobile landscape & portrait orientations (e.g., iPhone) with a one-click native **Fullscreen** toggle.
 - **🏆 Non-Modal Persistent Victory Banner**:
   - Winner announcement appears prominently in the screen center without blocking the board or UI controls.

@@ -23,11 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🎨 User Interface & Board UX
 - **Bottom-Left Upward Board Stacking**:
   - Reconfigured the shared table (`.board-container`) flex layout (`flex-wrap: wrap-reverse; align-content: flex-start;`) so sets begin at the bottom-left corner and stack upwards row by row.
-- **Adaptive Board Overflow-Based Tile Scaling**:
-  - Replaced rigid set-count thresholds with real-time physical overflow detection (`scrollHeight` vs `clientHeight`).
-  - Tiles **always remain 100% full size as long as there is sufficient space on the table**, regardless of set count.
-  - Tiles only scale down progressively (`compact` ➔ `dense` ➔ `ultra-dense`) when table rows actually begin to overflow the container, and automatically restore to full size when space frees up.
-  - Includes responsive window resize recalculation.
+- **Stable & Balanced Initial Tile Sizing (Flicker Prevention)**:
+  - Removed mid-game dynamic tile resizing logic completely to eliminate screen flickering or visual layout jumping.
+  - Reduced default starting desktop tile dimensions from 64×90px to a balanced, comfortable **54×76px** (and laptop to 48×68px).
+  - Ensures ample board space from the start while preserving 1:1 consistent tile dimensions between board sets and the player rack.
 - **"New Set" Drop Zone Optimization**:
   - Relocated the "Create New Set" drop area to the bottom center of the table for natural drag-and-drop ergonomics.
   - Balanced drop target height to a sleek 52px for optimal table view space.
