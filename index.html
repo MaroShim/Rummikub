@@ -93,8 +93,19 @@
             <span id="meld-status" class="badge badge-unmelded">첫 등록 필요 (30점 이상)</span>
           </div>
 
-          <!-- 새 세트 만들기 드롭존 (컨트롤 바 라인) -->
-          <div class="new-set-zone" id="new-set-zone" title="타일을 여기로 드래그하거나 클릭하여 새 세트를 만듭니다">
+          <!-- 첫 등록 전용 패널: 점수 슬라이더(1~30) + 등록! 버튼 -->
+          <div class="initial-meld-panel" id="initial-meld-panel">
+            <div class="meld-slider-wrap" title="첫 등록 기준 점수를 1~30점으로 조절합니다">
+              <span class="slider-label">첫 등록: <strong id="meld-slider-val">30</strong>점 이상</span>
+              <input type="range" id="slider-meld-score" min="1" max="30" value="30" step="1" />
+            </div>
+            <button id="btn-initial-meld" class="btn btn-primary btn-meld" title="거치대에서 클릭해 위로 들어올린 타일들로 첫 등록을 진행합니다">
+              ✨ 등록!
+            </button>
+          </div>
+
+          <!-- 새 세트 만들기 드롭존 (첫 등록 완료 후 표시) -->
+          <div class="new-set-zone hidden" id="new-set-zone" title="타일을 여기로 드래그하거나 클릭하여 새 세트를 만듭니다">
             <span class="plus-icon">➕</span>
             <span>새 세트 만들기</span>
           </div>

@@ -14,8 +14,14 @@ export class RummikubGame {
   isGameOver: boolean = false;
   winner: Player | null = null;
   logs: string[] = [];
+  initialMeldThreshold: number = 30; // 첫 등록 최소 점수 (기본 30점, 슬라이더로 1~30 조절 가능)
 
   constructor() {}
+
+  /** 첫 등록 최소 점수 설정 (1~30) */
+  setInitialMeldThreshold(threshold: number): void {
+    this.initialMeldThreshold = Math.max(1, Math.min(30, Math.floor(threshold)));
+  }
 
   /**
    * 새 게임을 시작합니다.
@@ -81,6 +87,7 @@ export class RummikubGame {
     this.snapshot = {
       board: JSON.parse(JSON.stringify(this.board)),
       hand: JSON.parse(JSON.stringify(current.hand)),
+      hasInitialMeld: current.hasInitialMeld,
     };
   }
 
@@ -90,9 +97,13 @@ export class RummikubGame {
   resetTurn(): void {
     if (!this.snapshot) return;
     this.board = JSON.parse(JSON.stringify(this.snapshot.board));
-    this.getCurrentPlayer().hand = JSON.parse(JSON.stringify(this.snapshot.hand));
+    const current = this.getCurrentPlayer();
+    current.hand = JSON.parse(JSON.stringify(this.snapshot.hand));
+    if (this.snapshot.hasInitialMeld !== undefined) {
+      current.hasInitialMeld = this.snapshot.hasInitialMeld;
+    }
     this.cleanupEmptySets();
-    this.addLog(`${this.getCurrentPlayer().name}님이 패를 원상복구했습니다.`);
+    this.addLog(`${current.name}님이 패를 원상복구했습니다.`);
   }
 
   /**
@@ -160,17 +171,17 @@ export class RummikubGame {
       };
     }
 
-    // 2. 첫 등록(Initial Meld) 30점 규칙 검증
+    // 2. 첫 등록(Initial Meld) 규칙 검증
     if (!player.hasInitialMeld) {
       const meldResult = this.checkInitialMeld(playedTiles);
       if (!meldResult.valid) {
         return {
           success: false,
-          error: meldResult.error || '첫 등록은 자신의 패로만 만든 세트의 합이 30점 이상이어야 합니다.',
+          error: meldResult.error || `첫 등록은 자신의 패로만 만든 세트의 합이 ${this.initialMeldThreshold}점 이상이어야 합니다.`,
         };
       }
       player.hasInitialMeld = true;
-      this.addLog(`🎉 ${player.name}님이 첫 등록(30점 이상)에 성공했습니다!`);
+      this.addLog(`🎉 ${player.name}님이 첫 등록(${this.initialMeldThreshold}점 이상)에 성공했습니다!`);
     }
 
     // 세트들 깔끔하게 자동 정렬
@@ -228,10 +239,10 @@ export class RummikubGame {
       }
     }
 
-    if (totalScore < 30) {
+    if (totalScore < this.initialMeldThreshold) {
       return {
         valid: false,
-        error: `첫 등록 점수 합계가 30점 이상이어야 합니다. (현재: ${totalScore}점)`,
+        error: `첫 등록 점수 합계가 ${this.initialMeldThreshold}점 이상이어야 합니다. (현재: ${totalScore}점)`,
       };
     }
 

@@ -23,6 +23,7 @@ export interface Player {
 export interface TurnSnapshot {
   board: TileSet[];
   hand: Tile[];
+  hasInitialMeld?: boolean;
 }
 
 export interface SetValidationResult {

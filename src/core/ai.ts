@@ -134,7 +134,7 @@ export class RummikubAI {
         }
       }
 
-      if (!hasConflict && totalScore >= 30) {
+      if (!hasConflict && totalScore >= game.initialMeldThreshold) {
         if (difficulty === 'expert' || difficulty === 'master') {
           // 고급/최고급: 높은 점수의 타일을 우선적으로 털어내는 조합 선택
           if (totalScore > bestScore) {
@@ -142,7 +142,7 @@ export class RummikubAI {
             bestSubset = subset;
           }
         } else {
-          // 초급/중급: 30점 넘는 첫 번째 조합 즉시 선택
+          // 초급/중급: 기준 점수를 넘는 첫 번째 조합 즉시 선택
           bestSubset = subset;
           break;
         }

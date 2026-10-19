@@ -21,16 +21,20 @@
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --tile-font: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
 
-  /* 시작 기본 타일 치수 (기존 64x90px에서 약 15% 줄여 시원하면서도 여유로운 54x76px로 최적화) */
-  --tile-w: 54px;
-  --tile-h: 76px;
-  --tile-radius: 8px;
-  --tile-val-size: 32px;
-  --tile-icon-size: 14px;
-  --tile-joker-size: 36px;
-  --set-min-h: 88px;
-  --rack-min-h: 178px;
-  --rack-max-h: 215px;
+  /* 반응형 타일 및 랙 치수:
+     전체화면(1080p)에서는 54x76px (가로 약 30개, 테이블 4줄, 랙 2줄)
+     맥북/작은 창(높이 700~900px, 너비 1200~1440px)에서는 화면 비율에 맞추어 유연하게 스케일 다운!
+  */
+  --tile-h: clamp(40px, min(8.3vh, 4.0vw), 76px);
+  --tile-w: calc(var(--tile-h) * 0.71);
+  --tile-radius: calc(var(--tile-h) * 0.1);
+  --tile-val-size: calc(var(--tile-h) * 0.42);
+  --tile-icon-size: calc(var(--tile-h) * 0.18);
+  --tile-joker-size: calc(var(--tile-h) * 0.47);
+  --set-min-h: calc(var(--tile-h) + 12px);
+  --rack-min-h: calc(var(--tile-h) * 2 + 22px);
+  --rack-max-h: calc(var(--tile-h) * 2 + 38px);
+  --board-gap: clamp(8px, 1.4vh, 16px);
 }
 
 * {
@@ -321,11 +325,11 @@ body {
   background: rgba(15, 23, 42, 0.4);
   border: 2px dashed #334155;
   border-radius: 12px;
-  padding: 14px;
+  padding: clamp(8px, 1.2vh, 14px);
   display: flex;
   flex-wrap: wrap-reverse;
   align-content: flex-start;
-  gap: 16px;
+  gap: var(--board-gap, 16px);
   position: relative;
   transition: border-color 0.2s ease, background-color 0.2s ease;
   overflow-y: auto;
@@ -425,6 +429,95 @@ body {
   box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
 }
 
+/* 거치대 타일 클릭 들어올림 (첫 등록 모드 및 선택 상태) */
+.tile.is-raised {
+  transform: translateY(-16px) scale(1.04) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 10px 20px rgba(245, 158, 11, 0.45), 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+  z-index: 10;
+  transition: transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.18s ease;
+}
+
+body.dark-mode .tile.is-raised {
+  border-color: #fde047 !important;
+  box-shadow: 0 10px 20px rgba(253, 224, 71, 0.5), 0 0 12px rgba(253, 224, 71, 0.3) !important;
+}
+
+/* ================== 첫 등록 슬라이더 및 등록 버튼 패널 ================== */
+.initial-meld-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1.5px solid #475569;
+  border-radius: 10px;
+  padding: 4px 16px;
+  height: 50px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.initial-meld-panel.hidden {
+  display: none !important;
+}
+
+.meld-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.slider-label {
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.slider-label strong {
+  color: #f59e0b;
+  font-size: 14px;
+}
+
+.meld-slider-wrap input[type="range"] {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  accent-color: #f59e0b;
+  cursor: pointer;
+  background: #334155;
+  outline: none;
+}
+
+.btn-meld {
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #1e1b18;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-meld:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.55);
+}
+
+.btn-meld:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ================== 알림 팝업 (Toast / Floating Popup) ================== */
 .notification-bar {
   position: fixed;
@@ -466,6 +559,12 @@ body {
   border: 1.5px solid #3b82f6;
 }
 
+.notification-bar.warning {
+  background: rgba(120, 53, 15, 0.95);
+  color: #fefce8;
+  border: 1.5px solid #f59e0b;
+}
+
 .notification-bar.success {
   background: rgba(6, 78, 59, 0.95);
   color: #ecfdf5;
@@ -476,7 +575,7 @@ body {
 .player-dock {
   background: #17110c;
   border-top: 3px solid #3e2815;
-  padding: 12px 24px 18px;
+  padding: clamp(8px, 1.2vh, 12px) 20px clamp(10px, 1.6vh, 18px);
   flex-shrink: 0;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
 }
@@ -630,17 +729,17 @@ body.dark-mode .tile.color-red .tile-icon {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* 2. 노랑 타일: 밝은 계열 노랑 바탕 + 선명한 다크 네이비 숫자 */
+/* 2. 노랑 타일: 차분하고 고급스러운 앰버 골드 바탕 + 화이트 숫자 */
 body.dark-mode .tile.color-yellow {
-  background: linear-gradient(145deg, #fef08a, #facc15);
-  border-color: #fef9c3;
-  border-bottom: 5px solid #ca8a04;
-  box-shadow: 0 4px 10px rgba(234, 179, 8, 0.35);
+  background: linear-gradient(145deg, #d97706, #b45309);
+  border-color: #f59e0b;
+  border-bottom: 5px solid #78350f;
+  box-shadow: 0 4px 10px rgba(180, 83, 9, 0.4);
 }
 body.dark-mode .tile.color-yellow .tile-value,
 body.dark-mode .tile.color-yellow .tile-icon {
-  color: #0f172a;
-  text-shadow: none;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* 3. 초록 타일(기존 검정 타일): 초록 바탕 + 화이트 숫자 */
@@ -656,17 +755,17 @@ body.dark-mode .tile.color-black .tile-icon {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* 4. 파랑 타일: 밝은 계열 파랑 바탕(스카이/아주르) + 선명한 딥 네이비 숫자 */
+/* 4. 파랑 타일: 차분하고 깊이 있는 로열 블루 바탕 + 화이트 숫자 */
 body.dark-mode .tile.color-blue {
-  background: linear-gradient(145deg, #7dd3fc, #38bdf8);
-  border-color: #bae6fd;
-  border-bottom: 5px solid #0284c7;
-  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.35);
+  background: linear-gradient(145deg, #2563eb, #1d4ed8);
+  border-color: #60a5fa;
+  border-bottom: 5px solid #1e3a8a;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
 }
 body.dark-mode .tile.color-blue .tile-value,
 body.dark-mode .tile.color-blue .tile-icon {
-  color: #082f49;
-  text-shadow: none;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* 5. 조커 타일: 바이올렛 퍼플 바탕 + 빛나는 골드 옐로우 심볼 */
@@ -956,20 +1055,7 @@ body.dark-mode .board-wrapper {
 .join-status.error { color: #f87171; }
 .join-status.success { color: #4ade80; }
 
-/* ================== 노트북 및 중간 해상도 데스크톱 (max-width: 1400px or max-height: 850px) ================== */
-@media screen and (min-width: 851px) and ((max-width: 1400px) or (max-height: 850px)) {
-  :root {
-    --tile-w: 48px;
-    --tile-h: 68px;
-    --tile-radius: 7px;
-    --tile-val-size: 28px;
-    --tile-icon-size: 12px;
-    --tile-joker-size: 32px;
-    --set-min-h: 78px;
-    --rack-min-h: 160px;
-    --rack-max-h: 195px;
-  }
-}
+/* ================== 노트북 및 중간 해상도 데스크톱 (유동 clamp 스케일링 기본 적용) ================== */
 
 /* ================== 모바일/태블릿 세로 모드 (max-width: 850px) ================== */
 @media (max-width: 850px) {
@@ -1014,6 +1100,21 @@ body.dark-mode .board-wrapper {
     padding: 3px;
     gap: 3px;
     border-radius: 6px;
+  }
+  .initial-meld-panel {
+    height: 44px;
+    width: 100%;
+    padding: 4px 12px;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .meld-slider-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  .btn-meld {
+    padding: 6px 12px;
+    font-size: 13px;
   }
   .new-set-zone {
     height: 44px;
@@ -1162,6 +1263,18 @@ body.dark-mode .board-wrapper {
     min-height: 42px;
     padding: 2px;
     gap: 2px;
+  }
+  .initial-meld-panel {
+    height: 32px;
+    padding: 2px 8px;
+    gap: 6px;
+  }
+  .slider-label {
+    font-size: 10px;
+  }
+  .btn-meld {
+    padding: 4px 8px;
+    font-size: 11px;
   }
   .new-set-zone {
     height: 32px;
