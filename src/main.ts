@@ -20,6 +20,7 @@ const playersPanelEl = document.getElementById('players-panel') as HTMLElement;
 const boardContainerEl = document.getElementById('board-container') as HTMLElement;
 const newSetZoneEl = document.getElementById('new-set-zone') as HTMLElement;
 const initialMeldPanelEl = document.getElementById('initial-meld-panel') as HTMLElement;
+const meldSliderWrapEl = document.getElementById('meld-slider-wrap') as HTMLElement;
 const sliderMeldScoreEl = document.getElementById('slider-meld-score') as HTMLInputElement;
 const meldSliderValEl = document.getElementById('meld-slider-val') as HTMLElement;
 const btnInitialMeld = document.getElementById('btn-initial-meld') as HTMLButtonElement;
@@ -308,19 +309,42 @@ function updateInitialMeldUI(): void {
     meldSliderValEl.textContent = threshold.toString();
   }
 
+  const selectedTiles = me.hand.filter((t) => selectedRackTileIds.has(t.id));
+
   if (me.hasInitialMeld) {
-    initialMeldPanelEl.classList.add('hidden');
+    // 첫 등록 완료 후: 슬라이더는 숨기고, [세트 등록!] 버튼과 [새 세트 만들기] 드롭존을 공존
+    meldSliderWrapEl.style.display = 'none';
+    initialMeldPanelEl.classList.add('compact');
+    initialMeldPanelEl.classList.remove('hidden');
     newSetZoneEl.classList.remove('hidden');
     meldStatusEl.className = 'badge badge-melded';
     meldStatusEl.textContent = '첫 등록 완료 (자유 조합 가능)';
-    selectedRackTileIds.clear();
+
+    if (selectedTiles.length === 0) {
+      btnInitialMeld.textContent = '✨ 세트 등록!';
+      btnInitialMeld.title = '거치대에서 타일을 클릭해 올린 후 새 세트로 등록하세요';
+      btnInitialMeld.classList.remove('valid-meld');
+    } else {
+      const validation = validateTileSet(selectedTiles);
+      const score = validation.score ?? 0;
+      btnInitialMeld.textContent = `✨ 세트 등록! (${score}점)`;
+      if (validation.valid) {
+        btnInitialMeld.title = `유효한 세트입니다 (${validation.type === 'group' ? '그룹' : '런'}, ${score}점). 클릭하여 보드에 등록!`;
+        btnInitialMeld.classList.add('valid-meld');
+      } else {
+        btnInitialMeld.classList.remove('valid-meld');
+        btnInitialMeld.title = `세트 규칙 위반: ${validation.reason || '런 또는 그룹 아님'}`;
+      }
+    }
   } else {
+    // 첫 등록 전: 슬라이더 표시, 새 세트 드롭존 숨김
+    meldSliderWrapEl.style.display = 'flex';
+    initialMeldPanelEl.classList.remove('compact');
     initialMeldPanelEl.classList.remove('hidden');
     newSetZoneEl.classList.add('hidden');
     meldStatusEl.className = 'badge badge-unmelded';
     meldStatusEl.textContent = `첫 등록 필요 (${threshold}점 이상)`;
 
-    const selectedTiles = me.hand.filter((t) => selectedRackTileIds.has(t.id));
     if (selectedTiles.length === 0) {
       btnInitialMeld.textContent = '✨ 등록!';
       btnInitialMeld.title = '거치대에서 타일을 클릭해 위로 들어올린 후 등록하세요';
@@ -341,8 +365,8 @@ function updateInitialMeldUI(): void {
         }
       }
     }
-    btnInitialMeld.disabled = !isMyTurn() || isProcessingTurn;
   }
+  btnInitialMeld.disabled = !isMyTurn() || isProcessingTurn;
 }
 
 function renderRack(): void {
@@ -381,28 +405,20 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
   const me = getMyPlayer();
   const isRack = sourceInfo.location === 'rack';
 
-  // 첫 등록 전 거치대 타일: 클릭하여 들어올림(토글), 드래그는 비활성화
+  // 거치대 타일의 선택(들어올림) 상태 반영
+  if (isRack && selectedRackTileIds.has(tile.id)) {
+    el.classList.add('is-raised');
+  }
+
+  // 첫 등록 전 거치대 타일은 드래그 비활성화, 첫 등록 후 또는 보드 타일은 드래그 가능
   if (isRack && !me.hasInitialMeld) {
     el.draggable = false;
-    if (selectedRackTileIds.has(tile.id)) {
-      el.classList.add('is-raised');
-    }
     el.title = '클릭하여 첫 등록 세트로 선택/해제';
-
-    el.addEventListener('click', () => {
-      if (!isMyTurn() || isProcessingTurn) return;
-      if (selectedRackTileIds.has(tile.id)) {
-        selectedRackTileIds.delete(tile.id);
-        el.classList.remove('is-raised');
-      } else {
-        selectedRackTileIds.add(tile.id);
-        el.classList.add('is-raised');
-      }
-      updateInitialMeldUI();
-    });
   } else {
-    // 첫 등록 완료 후 거치대 타일 및 보드 타일: 자유로운 드래그
     el.draggable = isMyTurn() && !isProcessingTurn;
+    if (isRack) {
+      el.title = '클릭: 세트 등록 선택/해제 | 드래그: 원하는 위치로 직접 이동';
+    }
   }
 
   const valueDisplay = tile.isJoker ? '☺' : tile.value.toString();
@@ -412,6 +428,26 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
     <div class="tile-value">${valueDisplay}</div>
     <div class="tile-icon">${iconDisplay}</div>
   `;
+
+  // 드래그와 클릭의 명확한 분리를 위한 플래그
+  let isTileDragging = false;
+
+  // 거치대 타일 클릭: 언제나 위로 들어올림/원래 위치 토글
+  if (isRack) {
+    el.addEventListener('click', () => {
+      if (isTileDragging) return; // 드래그 동작 중이거나 방금 드래그가 끝난 경우 클릭 무시
+      if (!isMyTurn() || isProcessingTurn) return;
+
+      if (selectedRackTileIds.has(tile.id)) {
+        selectedRackTileIds.delete(tile.id);
+        el.classList.remove('is-raised');
+      } else {
+        selectedRackTileIds.add(tile.id);
+        el.classList.add('is-raised');
+      }
+      updateInitialMeldUI();
+    });
+  }
 
   el.addEventListener('dragstart', (e) => {
     if (!isMyTurn() || isProcessingTurn) {
@@ -423,6 +459,7 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
       showNotification('💡 첫 등록은 타일을 클릭하여 [등록!] 버튼으로 진행하세요.', 'info');
       return;
     }
+    isTileDragging = true;
     currentDragSource = sourceInfo;
     el.classList.add('dragging');
     if (e.dataTransfer) {
@@ -435,6 +472,10 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
     el.classList.remove('dragging');
     currentDragSource = null;
     clearDragHoverStyles();
+    // 드래그 종료 직후 연이어 발생하는 click 이벤트 방지를 위해 딜레이 후 플래그 해제
+    setTimeout(() => {
+      isTileDragging = false;
+    }, 60);
   });
 
   return el;
@@ -514,6 +555,7 @@ function handleDropOnSet(source: DragSource, targetSetIndex: number): void {
   }
 
   if (tileToMove) {
+    selectedRackTileIds.delete(tileToMove.id);
     game.board[targetSetIndex].push(tileToMove);
     game.cleanupEmptySets();
     renderAll();
@@ -536,6 +578,7 @@ function handleDropOnNewSet(source: DragSource): void {
   }
 
   if (tileToMove) {
+    selectedRackTileIds.delete(tileToMove.id);
     const newSet: TileSet = [tileToMove];
     game.board.push(newSet);
     game.cleanupEmptySets();
@@ -586,10 +629,6 @@ btnInitialMeld.addEventListener('click', () => {
     return;
   }
   const me = getMyPlayer();
-  if (me.hasInitialMeld) {
-    showNotification('이미 첫 등록을 완료했습니다.', 'info');
-    return;
-  }
 
   const selectedTiles = me.hand.filter((t) => selectedRackTileIds.has(t.id));
   if (selectedTiles.length === 0) {
@@ -612,25 +651,40 @@ btnInitialMeld.addEventListener('click', () => {
   }
 
   const score = validation.score ?? 0;
-  if (score < game.initialMeldThreshold) {
+
+  if (!me.hasInitialMeld) {
+    // 1. 첫 등록 전: 기준 점수 이상 확인 필요
+    if (score < game.initialMeldThreshold) {
+      showNotification(
+        `⚠️ 첫 등록 기준 점수(${game.initialMeldThreshold}점) 이상이어야 합니다. (현재 세트 점수: ${score}점)`,
+        'warning'
+      );
+      return;
+    }
+
+    const setIds = new Set(selectedRackTileIds);
+    me.hand = me.hand.filter((t) => !setIds.has(t.id));
+    game.board.push(selectedTiles);
+    me.hasInitialMeld = true;
+    selectedRackTileIds.clear();
+
     showNotification(
-      `⚠️ 첫 등록 기준 점수(${game.initialMeldThreshold}점) 이상이어야 합니다. (현재 세트 점수: ${score}점)`,
-      'warning'
+      `🎉 첫 등록 성공! (${validation.type === 'group' ? '그룹' : '런'}, ${score}점) 이제 자유롭게 조합하고 [턴 확정]을 누르세요.`,
+      'success'
     );
-    return;
+  } else {
+    // 2. 첫 등록 완료 후: 점수 제한 없이 유효한 세트 등록
+    const setIds = new Set(selectedRackTileIds);
+    me.hand = me.hand.filter((t) => !setIds.has(t.id));
+    game.board.push(selectedTiles);
+    selectedRackTileIds.clear();
+
+    showNotification(
+      `✨ 새 세트 등록 성공! (${validation.type === 'group' ? '그룹' : '런'}, ${score}점)`,
+      'success'
+    );
   }
 
-  // 첫 등록 성공: 핸드에서 타일 제거 후 보드에 새 세트로 추가
-  const setIds = new Set(selectedRackTileIds);
-  me.hand = me.hand.filter((t) => !setIds.has(t.id));
-  game.board.push(selectedTiles);
-  me.hasInitialMeld = true;
-  selectedRackTileIds.clear();
-
-  showNotification(
-    `🎉 첫 등록 성공! (${validation.type === 'group' ? '그룹' : '런'}, ${score}점) 이제 자유롭게 조합하고 [턴 확정]을 누르세요.`,
-    'success'
-  );
   renderAll();
 
   if (isOnlineMode && net.isHost) {

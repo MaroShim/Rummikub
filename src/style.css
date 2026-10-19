@@ -462,6 +462,13 @@ body.dark-mode .tile.is-raised {
   display: none !important;
 }
 
+.initial-meld-panel.compact {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
 .meld-slider-wrap {
   display: flex;
   flex-direction: column;
