@@ -46,20 +46,17 @@ export class RummikubGame {
       },
     ];
 
-    // 난이도 정의: 봇 1명(초급), 2명(초급, 중급), 3명(초급, 중급, 고급)
-    const botConfigs: { name: string; difficulty: 'beginner' | 'intermediate' | 'expert' }[] = [
-      { name: '루키봇 (초급)', difficulty: 'beginner' },
-      { name: '베테랑봇 (중급)', difficulty: 'intermediate' },
-      { name: '마스터봇 (고급)', difficulty: 'expert' },
-    ];
+    // 봇 생성: 난이도는 고급(expert)과 최고급(master) 중 하나를 무작위 할당
+    const botNames = ['알파봇', '베타봇', '감마봇'];
 
     for (let i = 0; i < botCount; i++) {
-      const cfg = botConfigs[i] || { name: `봇 ${i + 1}`, difficulty: 'intermediate' };
+      const name = botNames[i] || `봇 ${i + 1}`;
+      const difficulty: BotDifficulty = Math.random() < 0.5 ? 'expert' : 'master';
       this.players.push({
         id: `bot-${i + 1}`,
-        name: cfg.name,
+        name,
         isAi: true,
-        difficulty: cfg.difficulty,
+        difficulty,
         hand: [],
         hasInitialMeld: false,
       });
@@ -293,37 +290,8 @@ export class RummikubGame {
     return this.board.length - 1;
   }
 
-  /**
-   * 봇의 난이도를 다음 등급으로 올림 (초급 -> 중급 -> 고급 -> 최고급 -> 초급)
-   */
-  cycleBotDifficulty(playerId: string): { oldDiff: BotDifficulty; newDiff: BotDifficulty; newName: string; label: string } | null {
-    const player = this.players.find((p) => p.id === playerId && p.isAi);
-    if (!player) return null;
-
-    const currentDiff = player.difficulty || 'beginner';
-    const nextCfg = DIFFICULTY_CONFIG[currentDiff];
-    const newDiff = nextCfg.next;
-    const newInfo = DIFFICULTY_CONFIG[newDiff];
-
-    player.difficulty = newDiff;
-    player.name = `${newInfo.name} (${newInfo.label})`;
-    this.addLog(`${player.name}의 난이도가 [${newInfo.label}]으로 변경되었습니다.`);
-
-    return { oldDiff: currentDiff, newDiff, newName: player.name, label: newInfo.label };
-  }
-
   addLog(msg: string): void {
     this.logs.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
     if (this.logs.length > 50) this.logs.pop();
   }
 }
-
-export const DIFFICULTY_CONFIG: Record<
-  BotDifficulty,
-  { next: BotDifficulty; label: string; name: string }
-> = {
-  beginner: { next: 'intermediate', label: '초급', name: '루키봇' },
-  intermediate: { next: 'expert', label: '중급', name: '베테랑봇' },
-  expert: { next: 'master', label: '고급', name: '마스터봇' },
-  master: { next: 'beginner', label: '최고급', name: '알파봇' },
-};

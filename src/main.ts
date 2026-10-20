@@ -218,27 +218,6 @@ function renderPlayers(): void {
       </div>
     `;
 
-    // 봇 카드 클릭 시 난이도 한 단계 상승 (초급 -> 중급 -> 고급 -> 최고급 -> 초급)
-    if (player.isAi) {
-      card.title = '클릭하여 봇 난이도 변경 (초급 ➔ 중급 ➔ 고급 ➔ 최고급 ➔ 초급)';
-      card.addEventListener('click', () => {
-        if (isOnlineMode && !net.isHost) {
-          showNotification('온라인 대전에서는 방장만 봇 난이도를 변경할 수 있습니다.', 'error');
-          return;
-        }
-
-        const res = game.cycleBotDifficulty(player.id);
-        if (res) {
-          showNotification(`⚡ ${res.newName}으로 난이도가 변경되었습니다!`, 'info');
-          if (isOnlineMode) {
-            broadcastGameState();
-          } else {
-            renderAll();
-          }
-        }
-      });
-    }
-
     playersPanelEl.appendChild(card);
   });
 }
