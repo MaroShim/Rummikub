@@ -19,11 +19,11 @@ const currentTurnBadgeEl = document.getElementById('current-turn-badge') as HTML
 const playersPanelEl = document.getElementById('players-panel') as HTMLElement;
 const boardContainerEl = document.getElementById('board-container') as HTMLElement;
 const newSetZoneEl = document.getElementById('new-set-zone') as HTMLElement;
+const newSetIconEl = document.getElementById('new-set-icon') as HTMLElement;
+const newSetTextEl = document.getElementById('new-set-text') as HTMLElement;
 const initialMeldPanelEl = document.getElementById('initial-meld-panel') as HTMLElement;
-const meldSliderWrapEl = document.getElementById('meld-slider-wrap') as HTMLElement;
 const sliderMeldScoreEl = document.getElementById('slider-meld-score') as HTMLInputElement;
 const meldSliderValEl = document.getElementById('meld-slider-val') as HTMLElement;
-const btnInitialMeld = document.getElementById('btn-initial-meld') as HTMLButtonElement;
 const rackContainerEl = document.getElementById('rack-container') as HTMLElement;
 const handCountEl = document.getElementById('hand-count') as HTMLElement;
 const meldStatusEl = document.getElementById('meld-status') as HTMLElement;
@@ -210,22 +210,10 @@ function renderPlayers(): void {
 
     const meldBadge = player.hasInitialMeld ? '✓ 등록완료' : '미등록';
 
-    let diffBadge = '';
-    if (player.isAi && player.difficulty) {
-      const diffLabelMap: Record<string, string> = {
-        beginner: '초급',
-        intermediate: '중급',
-        expert: '고급',
-        master: '최고급',
-      };
-      const label = diffLabelMap[player.difficulty] || player.difficulty;
-      diffBadge = `<span class="diff-tag ${player.difficulty}" title="클릭하여 난이도 변경">${label} 🔄</span>`;
-    }
-
     card.innerHTML = `
       <div class="player-avatar">${avatar}</div>
       <div class="player-meta">
-        <span class="p-name">${player.name}${isMe && !player.name.includes('(나)') ? ' (나)' : ''} ${diffBadge}</span>
+        <span class="p-name">${player.name}${isMe && !player.name.includes('(나)') ? ' (나)' : ''}</span>
         <span class="p-info">${player.hand.length}장 | ${meldBadge}</span>
       </div>
     `;
@@ -306,67 +294,69 @@ function updateInitialMeldUI(): void {
     sliderMeldScoreEl.value = threshold.toString();
   }
   if (meldSliderValEl) {
-    meldSliderValEl.textContent = threshold.toString();
+    meldSliderValEl.textContent = threshold === 0 ? '0' : threshold.toString();
   }
 
   const selectedTiles = me.hand.filter((t) => selectedRackTileIds.has(t.id));
 
   if (me.hasInitialMeld) {
-    // 첫 등록 완료 후: 슬라이더는 숨기고, [세트 등록!] 버튼과 [새 세트 만들기] 드롭존을 공존
-    meldSliderWrapEl.style.display = 'none';
-    initialMeldPanelEl.classList.add('compact');
-    initialMeldPanelEl.classList.remove('hidden');
-    newSetZoneEl.classList.remove('hidden');
+    // 첫 등록 완료 후: 슬라이더 패널 숨김
+    initialMeldPanelEl.classList.add('hidden');
     meldStatusEl.className = 'badge badge-melded';
     meldStatusEl.textContent = '첫 등록 완료 (자유 조합 가능)';
 
     if (selectedTiles.length === 0) {
-      btnInitialMeld.textContent = '✨ 세트 등록!';
-      btnInitialMeld.title = '거치대에서 타일을 클릭해 올린 후 새 세트로 등록하세요';
-      btnInitialMeld.classList.remove('valid-meld');
+      newSetZoneEl.classList.remove('valid-meld');
+      newSetIconEl.textContent = '➕';
+      newSetTextEl.textContent = '새 세트 만들기';
+      newSetZoneEl.title = '타일을 여기로 드래그하거나, 거치대에서 타일을 클릭하여 선택한 후 눌러 세트를 만듭니다';
     } else {
       const validation = validateTileSet(selectedTiles);
       const score = validation.score ?? 0;
-      btnInitialMeld.textContent = `✨ 세트 등록! (${score}점)`;
       if (validation.valid) {
-        btnInitialMeld.title = `유효한 세트입니다 (${validation.type === 'group' ? '그룹' : '런'}, ${score}점). 클릭하여 보드에 등록!`;
-        btnInitialMeld.classList.add('valid-meld');
+        newSetZoneEl.classList.add('valid-meld');
+        newSetIconEl.textContent = '✨';
+        newSetTextEl.textContent = `새 세트 등록 (${score}점)`;
+        newSetZoneEl.title = `유효한 세트입니다 (${validation.type === 'group' ? '그룹' : '런'}, ${score}점). 클릭하여 보드에 등록!`;
       } else {
-        btnInitialMeld.classList.remove('valid-meld');
-        btnInitialMeld.title = `세트 규칙 위반: ${validation.reason || '런 또는 그룹 아님'}`;
+        newSetZoneEl.classList.remove('valid-meld');
+        newSetIconEl.textContent = '➕';
+        newSetTextEl.textContent = `새 세트 만들기 (${selectedTiles.length}장)`;
+        newSetZoneEl.title = `규칙 위반: ${validation.reason || '런 또는 그룹 아님'}`;
       }
     }
   } else {
-    // 첫 등록 전: 슬라이더 표시, 새 세트 드롭존 숨김
-    meldSliderWrapEl.style.display = 'flex';
-    initialMeldPanelEl.classList.remove('compact');
+    // 첫 등록 전: 슬라이더 패널 표시
     initialMeldPanelEl.classList.remove('hidden');
-    newSetZoneEl.classList.add('hidden');
     meldStatusEl.className = 'badge badge-unmelded';
-    meldStatusEl.textContent = `첫 등록 필요 (${threshold}점 이상)`;
+    meldStatusEl.textContent = threshold === 0 ? '첫 등록 필요 (제한 없음)' : `첫 등록 필요 (${threshold}점 이상)`;
 
     if (selectedTiles.length === 0) {
-      btnInitialMeld.textContent = '✨ 등록!';
-      btnInitialMeld.title = '거치대에서 타일을 클릭해 위로 들어올린 후 등록하세요';
-      btnInitialMeld.classList.remove('valid-meld');
+      newSetZoneEl.classList.remove('valid-meld');
+      newSetIconEl.textContent = '➕';
+      newSetTextEl.textContent = '새 세트 만들기';
+      newSetZoneEl.title = '거치대에서 타일을 클릭해 올린 후 누르면 첫 등록됩니다';
     } else {
       const validation = validateTileSet(selectedTiles);
       const score = validation.score ?? 0;
-      btnInitialMeld.textContent = `✨ 등록! (${score}점)`;
       if (validation.valid && score >= threshold) {
-        btnInitialMeld.title = `유효한 세트입니다 (${validation.type === 'group' ? '그룹' : '런'}, ${score}점). 클릭하여 등록!`;
-        btnInitialMeld.classList.add('valid-meld');
+        newSetZoneEl.classList.add('valid-meld');
+        newSetIconEl.textContent = '✨';
+        newSetTextEl.textContent = `첫 등록하기 (${score}점)`;
+        newSetZoneEl.title = `유효한 세트입니다 (${score}점). 클릭하여 첫 등록!`;
       } else {
-        btnInitialMeld.classList.remove('valid-meld');
+        newSetZoneEl.classList.remove('valid-meld');
+        newSetIconEl.textContent = '➕';
         if (!validation.valid) {
-          btnInitialMeld.title = `세트 규칙 위반: ${validation.reason || '런 또는 그룹 아님'}`;
+          newSetTextEl.textContent = `새 세트 만들기 (${selectedTiles.length}장)`;
+          newSetZoneEl.title = `규칙 위반: ${validation.reason || '런 또는 그룹 아님'}`;
         } else {
-          btnInitialMeld.title = `점수 부족: 현재 ${score}점 / 필요 ${threshold}점 이상`;
+          newSetTextEl.textContent = `첫 등록 점수 부족 (${score}점 / ${threshold}점)`;
+          newSetZoneEl.title = `첫 등록 점수 부족: 현재 ${score}점 / 필요: ${threshold}점 이상`;
         }
       }
     }
   }
-  btnInitialMeld.disabled = !isMyTurn() || isProcessingTurn;
 }
 
 function renderRack(): void {
@@ -422,11 +412,9 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
   }
 
   const valueDisplay = tile.isJoker ? '☺' : tile.value.toString();
-  const iconDisplay = tile.isJoker ? '★' : getSymbolForColor(tile.color);
 
   el.innerHTML = `
     <div class="tile-value">${valueDisplay}</div>
-    <div class="tile-icon">${iconDisplay}</div>
   `;
 
   // 드래그와 클릭의 명확한 분리를 위한 플래그
@@ -479,16 +467,6 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
   });
 
   return el;
-}
-
-function getSymbolForColor(color: string): string {
-  switch (color) {
-    case 'black': return '♠';
-    case 'blue': return '◆';
-    case 'red': return '♥';
-    case 'yellow': return '●';
-    default: return '★';
-  }
 }
 
 function clearDragHoverStyles(): void {
@@ -599,31 +577,26 @@ function handleDropOnRack(source: DragSource): void {
   }
 }
 
-// 새 세트 영역 클릭 안내
-newSetZoneEl.addEventListener('click', () => {
-  const me = getMyPlayer();
-  if (!me.hasInitialMeld) {
-    showNotification('💡 첫 등록은 거치대의 타일을 클릭해 위로 올린 후 [등록!] 버튼을 누르세요.', 'info');
-  }
-});
-
-// 첫 등록 슬라이더 및 등록 버튼 핸들러
+// 첫 등록 슬라이더 핸들러 (0, 10, 20, 30점)
 sliderMeldScoreEl.addEventListener('input', () => {
   if (isOnlineMode && !net.isHost) {
     showNotification('온라인 대전에서는 방장만 첫 등록 점수를 변경할 수 있습니다.', 'warning');
     sliderMeldScoreEl.value = game.initialMeldThreshold.toString();
     return;
   }
-  const val = parseInt(sliderMeldScoreEl.value, 10) || 30;
+  const rawVal = parseInt(sliderMeldScoreEl.value, 10);
+  const val = isNaN(rawVal) ? 30 : Math.round(rawVal / 10) * 10;
+  sliderMeldScoreEl.value = val.toString();
   game.setInitialMeldThreshold(val);
-  meldSliderValEl.textContent = val.toString();
+  meldSliderValEl.textContent = val === 0 ? '0' : val.toString();
   updateInitialMeldUI();
   if (isOnlineMode && net.isHost) {
     broadcastGameState();
   }
 });
 
-btnInitialMeld.addEventListener('click', () => {
+// 새 세트 만들기 / 세트 등록 통합 버튼 클릭 핸들러
+newSetZoneEl.addEventListener('click', () => {
   if (isProcessingTurn || !isMyTurn()) {
     showNotification('현재 차례가 아니거나 턴 처리 중입니다.', 'warning');
     return;
@@ -631,11 +604,17 @@ btnInitialMeld.addEventListener('click', () => {
   const me = getMyPlayer();
 
   const selectedTiles = me.hand.filter((t) => selectedRackTileIds.has(t.id));
+
+  // 1. 거치대에서 선택된 타일이 없을 때 클릭: 친절한 안내 표시
   if (selectedTiles.length === 0) {
-    showNotification('💡 거치대에서 등록할 타일들을 먼저 클릭하여 위로 올려주세요.', 'info');
+    showNotification(
+      '💡 거치대에서 등록할 타일들을 클릭하여 선택한 후 누르거나, 타일을 여기로 드래그하세요.',
+      'info'
+    );
     return;
   }
 
+  // 2. 선택된 타일이 있을 때 클릭: 세트 유효성 검사 및 등록 진행
   if (selectedTiles.length < 3) {
     showNotification('⚠️ 세트는 최소 3장 이상의 타일로 구성되어야 합니다.', 'warning');
     return;
@@ -653,10 +632,10 @@ btnInitialMeld.addEventListener('click', () => {
   const score = validation.score ?? 0;
 
   if (!me.hasInitialMeld) {
-    // 1. 첫 등록 전: 기준 점수 이상 확인 필요
+    // 첫 등록 전: 기준 점수 이상 확인 필요
     if (score < game.initialMeldThreshold) {
       showNotification(
-        `⚠️ 첫 등록 기준 점수(${game.initialMeldThreshold}점) 이상이어야 합니다. (현재 세트 점수: ${score}점)`,
+        `⚠️ 첫 등록 기준 점수(${game.initialMeldThreshold}점) 이상이어야 합니다. (현재 선택한 세트: ${score}점)`,
         'warning'
       );
       return;
@@ -673,7 +652,7 @@ btnInitialMeld.addEventListener('click', () => {
       'success'
     );
   } else {
-    // 2. 첫 등록 완료 후: 점수 제한 없이 유효한 세트 등록
+    // 첫 등록 완료 후: 점수 제한 없이 새 세트 등록
     const setIds = new Set(selectedRackTileIds);
     me.hand = me.hand.filter((t) => !setIds.has(t.id));
     game.board.push(selectedTiles);
@@ -1352,12 +1331,12 @@ function initTheme(): void {
 function applyTheme(isDark: boolean): void {
   if (isDark) {
     document.body.classList.add('dark-mode');
-    btnThemeToggle.textContent = '☀️ 라이트 모드';
-    btnThemeToggle.title = '일반 아이보리 타일 모드로 전환';
+    btnThemeToggle.textContent = '☀️';
+    btnThemeToggle.title = '라이트 모드로 전환';
   } else {
     document.body.classList.remove('dark-mode');
-    btnThemeToggle.textContent = '🌙 다크 모드';
-    btnThemeToggle.title = '컬러풀 다크 타일 모드로 전환 (빨강/노랑/초록/파랑)';
+    btnThemeToggle.textContent = '🌙';
+    btnThemeToggle.title = '다크 모드로 전환';
   }
   localStorage.setItem('rummikub_dark_mode', isDark ? 'true' : 'false');
 }
@@ -1367,8 +1346,8 @@ btnThemeToggle.addEventListener('click', () => {
   applyTheme(willBeDark);
   showNotification(
     willBeDark
-      ? '🌙 다크 모드가 적용되었습니다! (타일 바탕색: 빨강, 노랑, 초록, 파랑)'
-      : '☀️ 라이트 모드가 적용되었습니다! (기본 아이보리 타일)',
+      ? '🌙 다크 모드로 전환되었습니다.'
+      : '☀️ 라이트 모드로 전환되었습니다.',
     'info'
   );
 });

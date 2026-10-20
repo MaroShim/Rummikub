@@ -18,9 +18,9 @@ export class RummikubGame {
 
   constructor() {}
 
-  /** 첫 등록 최소 점수 설정 (1~30) */
+  /** 첫 등록 최소 점수 설정 (0, 10, 20, 30점 조절 가능) */
   setInitialMeldThreshold(threshold: number): void {
-    this.initialMeldThreshold = Math.max(1, Math.min(30, Math.floor(threshold)));
+    this.initialMeldThreshold = Math.max(0, Math.min(30, Math.floor(threshold)));
   }
 
   /**

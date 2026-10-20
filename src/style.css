@@ -13,24 +13,23 @@
   --tile-border: #d4cebe;
   --tile-shadow: rgba(0, 0, 0, 0.25);
   
-  --color-black: #1e1e1e;
-  --color-blue: #1d4ed8;
-  --color-red: #dc2626;
-  --color-yellow: #d97706;
+  --color-black: #0f172a;
+  --color-blue: #0284c7;
+  --color-red: #e11d48;
+  --color-yellow: #b45309;
 
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --tile-font: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
 
   /* 반응형 타일 및 랙 치수:
-     전체화면(1080p)에서는 54x76px (가로 약 30개, 테이블 4줄, 랙 2줄)
-     맥북/작은 창(높이 700~900px, 너비 1200~1440px)에서는 화면 비율에 맞추어 유연하게 스케일 다운!
+     세로를 살짝 줄여 '정사각형보다 약간 세로로 긴' 최적 종횡비(가로:세로 약 1:1.19) 적용!
   */
-  --tile-h: clamp(40px, min(8.3vh, 4.0vw), 76px);
-  --tile-w: calc(var(--tile-h) * 0.71);
-  --tile-radius: calc(var(--tile-h) * 0.1);
-  --tile-val-size: calc(var(--tile-h) * 0.42);
-  --tile-icon-size: calc(var(--tile-h) * 0.18);
-  --tile-joker-size: calc(var(--tile-h) * 0.47);
+  --tile-h: clamp(36px, min(7.5vh, 3.8vw), 66px);
+  --tile-w: calc(var(--tile-h) * 0.84);
+  --tile-radius: calc(var(--tile-h) * 0.12);
+  --tile-val-size: calc(var(--tile-h) * 0.54);
+  --tile-icon-size: 0px;
+  --tile-joker-size: calc(var(--tile-h) * 0.52);
   --set-min-h: calc(var(--tile-h) + 12px);
   --rack-min-h: calc(var(--tile-h) * 2 + 22px);
   --rack-max-h: calc(var(--tile-h) * 2 + 38px);
@@ -442,6 +441,20 @@ body {
   box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
 }
 
+.new-set-zone.valid-meld {
+  border-style: solid;
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+}
+
+.new-set-zone.valid-meld:hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.85);
+}
+
 /* 거치대 타일 클릭 들어올림 (첫 등록 모드 및 선택 상태) */
 .tile.is-raised {
   transform: translateY(-16px) scale(1.04) !important;
@@ -706,20 +719,34 @@ body.dark-mode .tile.is-raised {
   font-size: var(--tile-val-size);
   font-weight: 800;
   line-height: 1;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+  text-align: center;
+  user-select: none;
 }
 
 .tile-icon {
-  font-size: var(--tile-icon-size);
-  line-height: 1;
-  margin-top: 2px;
+  display: none !important;
 }
 
-/* 타일 색상 변형 */
-.tile.color-black .tile-value { color: var(--color-black); }
-.tile.color-blue .tile-value { color: var(--color-blue); }
-.tile.color-red .tile-value { color: var(--color-red); }
-.tile.color-yellow .tile-value { color: var(--color-yellow); }
+/* 라이트 모드 타일 숫자 고대비 선명도 강화 */
+.tile.color-black .tile-value {
+  color: var(--color-black);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.tile.color-blue .tile-value {
+  color: var(--color-blue);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.tile.color-red .tile-value {
+  color: var(--color-red);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.tile.color-yellow .tile-value {
+  color: var(--color-yellow);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 1px rgba(180, 83, 9, 0.35);
+}
 
 .tile.is-joker {
   background: linear-gradient(145deg, #fff7ed, #fed7aa);
@@ -729,6 +756,7 @@ body.dark-mode .tile.is-raised {
 
 .tile.is-joker .tile-value {
   font-size: var(--tile-joker-size);
+  color: #c2410c;
 }
 
 /* ================== 다크 모드 전용 타일 바탕색 및 숫자 색상 ================== */
