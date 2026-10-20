@@ -15,8 +15,8 @@
   
   --color-black: #0f172a;
   --color-blue: #0284c7;
-  --color-red: #e11d48;
-  --color-yellow: #b45309;
+  --color-red: #dc2626;
+  --color-yellow: #facc15;
 
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --tile-font: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
@@ -728,25 +728,40 @@ body.dark-mode .tile.is-raised {
   display: none !important;
 }
 
-/* 라이트 모드 타일 숫자 고대비 선명도 강화 */
+/* 라이트 모드 타일 숫자 고대비 선명도 및 색상 구별 강화 */
+.tile.color-black {
+  border-bottom-color: #334155;
+}
 .tile.color-black .tile-value {
   color: var(--color-black);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+.tile.color-blue {
+  border-bottom-color: #0284c7;
+}
 .tile.color-blue .tile-value {
   color: var(--color-blue);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+.tile.color-red {
+  border-bottom-color: #ef4444;
+}
 .tile.color-red .tile-value {
   color: var(--color-red);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+/* 노랑 타일: 화사한 황금빛 노란색 + 진한 다크 브라운 외곽선 윤곽으로 완벽한 시인성 & 빨간색과 100% 명확한 구분 */
+.tile.color-yellow {
+  border-bottom-color: #f59e0b;
+}
 .tile.color-yellow .tile-value {
   color: var(--color-yellow);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 1px rgba(180, 83, 9, 0.35);
+  -webkit-text-stroke: calc(var(--tile-h) * 0.038) #5c2c06;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px rgba(92, 44, 6, 0.45);
 }
 
 .tile.is-joker {
@@ -789,6 +804,8 @@ body.dark-mode .tile.color-yellow {
 body.dark-mode .tile.color-yellow .tile-value,
 body.dark-mode .tile.color-yellow .tile-icon {
   color: #ffffff;
+  -webkit-text-stroke: 0;
+  paint-order: normal;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
