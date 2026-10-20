@@ -16,7 +16,7 @@
   --color-black: #0f172a;
   --color-blue: #0284c7;
   --color-red: #dc2626;
-  --color-yellow: #facc15;
+  --color-yellow: #ca8a04;
 
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --tile-font: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
@@ -690,9 +690,9 @@ body.dark-mode .tile.is-raised {
 .tile {
   width: var(--tile-w);
   height: var(--tile-h);
-  background: linear-gradient(145deg, #ffffff, #ece7d7);
+  background: linear-gradient(145deg, #ffffff, #f7f4ea);
   border: 1px solid var(--tile-border);
-  border-bottom: 5px solid #b8b19e;
+  border-bottom: 5px solid #c9c2af;
   border-radius: var(--tile-radius);
   display: flex;
   flex-direction: column;
@@ -728,40 +728,25 @@ body.dark-mode .tile.is-raised {
   display: none !important;
 }
 
-/* 라이트 모드 타일 숫자 고대비 선명도 및 색상 구별 강화 */
-.tile.color-black {
-  border-bottom-color: #334155;
-}
+/* 라이트 모드 타일 숫자 고대비 선명도 및 색상 구별 (깔끔한 무테 각인 스타일) */
 .tile.color-black .tile-value {
   color: var(--color-black);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-.tile.color-blue {
-  border-bottom-color: #0284c7;
-}
 .tile.color-blue .tile-value {
   color: var(--color-blue);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-.tile.color-red {
-  border-bottom-color: #ef4444;
-}
 .tile.color-red .tile-value {
   color: var(--color-red);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-/* 노랑 타일: 화사한 황금빛 노란색 + 진한 다크 브라운 외곽선 윤곽으로 완벽한 시인성 & 빨간색과 100% 명확한 구분 */
-.tile.color-yellow {
-  border-bottom-color: #f59e0b;
-}
 .tile.color-yellow .tile-value {
   color: var(--color-yellow);
-  -webkit-text-stroke: calc(var(--tile-h) * 0.038) #5c2c06;
-  paint-order: stroke fill;
-  text-shadow: 0 1px 2px rgba(92, 44, 6, 0.45);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .tile.is-joker {
@@ -772,7 +757,7 @@ body.dark-mode .tile.is-raised {
 
 .tile.is-joker .tile-value {
   font-size: var(--tile-joker-size);
-  color: #c2410c;
+  color: #ea580c;
 }
 
 /* ================== 다크 모드 전용 타일 바탕색 및 숫자 색상 ================== */
@@ -804,8 +789,6 @@ body.dark-mode .tile.color-yellow {
 body.dark-mode .tile.color-yellow .tile-value,
 body.dark-mode .tile.color-yellow .tile-icon {
   color: #ffffff;
-  -webkit-text-stroke: 0;
-  paint-order: normal;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
