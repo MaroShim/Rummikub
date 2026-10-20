@@ -1,7 +1,7 @@
 import { RummikubGame } from './core/game.ts';
 import { RummikubAI } from './core/ai.ts';
 import { Tile, TileSet, Player } from './core/types.ts';
-import { validateTileSet, validateBoard } from './core/validator.ts';
+import { validateTileSet, validateBoard, autoOrderSet } from './core/validator.ts';
 import { MultiplayerManager, NetworkMessage, RoomParticipant } from './network/multiplayer.ts';
 
 // 게임 및 네트워크 인스턴스
@@ -31,8 +31,8 @@ const notificationBarEl = document.getElementById('notification-bar') as HTMLEle
 const botCountSelectEl = document.getElementById('bot-count-select') as HTMLSelectElement;
 const botSelectWrapEl = document.getElementById('bot-select-wrap') as HTMLElement;
 
-// 거치대 타일 선택 상태 (첫 등록용 들어올림 모드)
-const selectedRackTileIds: Set<string> = new Set();
+// 거치대 및 보드 타일 선택 상태 (새 세트 만들기 및 첫 등록용 들어올림 모드)
+const selectedTileIds: Set<string> = new Set();
 
 // DOM 참조: 액션 버튼들
 const btnNewGame = document.getElementById('btn-new-game') as HTMLButtonElement;
@@ -140,7 +140,7 @@ function initOfflineGame(): void {
   myPlayerId = 'player-1';
   setOnlineUIState(false);
   hideVictoryBanner();
-  selectedRackTileIds.clear();
+  selectedTileIds.clear();
 
   const botCount = parseInt(botCountSelectEl.value, 10) || 3;
   game.start(botCount);
@@ -286,6 +286,56 @@ function renderBoard(): void {
   });
 }
 
+function getSelectedTiles(): {
+  all: Tile[];
+  rackTiles: Tile[];
+  boardTiles: { tile: Tile; setIndex: number }[];
+} {
+  const me = getMyPlayer();
+  const rackTiles: Tile[] = [];
+  const boardTiles: { tile: Tile; setIndex: number }[] = [];
+
+  // 거치대 타일 중 선택된 것 수집
+  me.hand.forEach((tile) => {
+    if (selectedTileIds.has(tile.id)) {
+      rackTiles.push(tile);
+    }
+  });
+
+  // 보드 세트 타일 중 선택된 것 수집
+  game.board.forEach((set, sIdx) => {
+    set.forEach((tile) => {
+      if (selectedTileIds.has(tile.id)) {
+        boardTiles.push({ tile, setIndex: sIdx });
+      }
+    });
+  });
+
+  // 존재하지 않는 ID 정리 (동기화 보정)
+  const validIds = new Set([...rackTiles.map((t) => t.id), ...boardTiles.map((b) => b.tile.id)]);
+  for (const id of Array.from(selectedTileIds)) {
+    if (!validIds.has(id)) {
+      selectedTileIds.delete(id);
+    }
+  }
+
+  // 사용자가 선택한 순서대로 전체 타일 배열 구성
+  const all: Tile[] = [];
+  selectedTileIds.forEach((id) => {
+    const fromRack = rackTiles.find((t) => t.id === id);
+    if (fromRack) {
+      all.push(fromRack);
+      return;
+    }
+    const fromBoard = boardTiles.find((b) => b.tile.id === id);
+    if (fromBoard) {
+      all.push(fromBoard.tile);
+    }
+  });
+
+  return { all, rackTiles, boardTiles };
+}
+
 function updateInitialMeldUI(): void {
   const me = getMyPlayer();
   const threshold = game.initialMeldThreshold;
@@ -297,7 +347,7 @@ function updateInitialMeldUI(): void {
     meldSliderValEl.textContent = threshold === 0 ? '0' : threshold.toString();
   }
 
-  const selectedTiles = me.hand.filter((t) => selectedRackTileIds.has(t.id));
+  const { all: selectedTiles, rackTiles, boardTiles } = getSelectedTiles();
 
   if (me.hasInitialMeld) {
     // 첫 등록 완료 후: 슬라이더 패널 숨김
@@ -309,7 +359,7 @@ function updateInitialMeldUI(): void {
       newSetZoneEl.classList.remove('valid-meld');
       newSetIconEl.textContent = '➕';
       newSetTextEl.textContent = '새 세트 만들기';
-      newSetZoneEl.title = '타일을 여기로 드래그하거나, 거치대에서 타일을 클릭하여 선택한 후 눌러 세트를 만듭니다';
+      newSetZoneEl.title = '타일을 여기로 드래그하거나, 거치대/보드에서 타일을 클릭하여 선택한 후 눌러 세트를 만듭니다';
     } else {
       const validation = validateTileSet(selectedTiles);
       const score = validation.score ?? 0;
@@ -331,13 +381,18 @@ function updateInitialMeldUI(): void {
     meldStatusEl.className = 'badge badge-unmelded';
     meldStatusEl.textContent = threshold === 0 ? '첫 등록 필요 (제한 없음)' : `첫 등록 필요 (${threshold}점 이상)`;
 
-    if (selectedTiles.length === 0) {
+    if (boardTiles.length > 0) {
+      newSetZoneEl.classList.remove('valid-meld');
+      newSetIconEl.textContent = '➕';
+      newSetTextEl.textContent = '거치대 타일만 사용 가능';
+      newSetZoneEl.title = '첫 등록은 자신의 거치대 타일로만 가능합니다.';
+    } else if (rackTiles.length === 0) {
       newSetZoneEl.classList.remove('valid-meld');
       newSetIconEl.textContent = '➕';
       newSetTextEl.textContent = '새 세트 만들기';
       newSetZoneEl.title = '거치대에서 타일을 클릭해 올린 후 누르면 첫 등록됩니다';
     } else {
-      const validation = validateTileSet(selectedTiles);
+      const validation = validateTileSet(rackTiles);
       const score = validation.score ?? 0;
       if (validation.valid && score >= threshold) {
         newSetZoneEl.classList.add('valid-meld');
@@ -348,7 +403,7 @@ function updateInitialMeldUI(): void {
         newSetZoneEl.classList.remove('valid-meld');
         newSetIconEl.textContent = '➕';
         if (!validation.valid) {
-          newSetTextEl.textContent = `새 세트 만들기 (${selectedTiles.length}장)`;
+          newSetTextEl.textContent = `새 세트 만들기 (${rackTiles.length}장)`;
           newSetZoneEl.title = `규칙 위반: ${validation.reason || '런 또는 그룹 아님'}`;
         } else {
           newSetTextEl.textContent = `첫 등록 점수 부족 (${score}점 / ${threshold}점)`;
@@ -395,19 +450,28 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
   const me = getMyPlayer();
   const isRack = sourceInfo.location === 'rack';
 
-  // 거치대 타일의 선택(들어올림) 상태 반영
-  if (isRack && selectedRackTileIds.has(tile.id)) {
+  // 거치대 및 보드 타일의 선택(들어올림) 상태 반영
+  if (selectedTileIds.has(tile.id)) {
     el.classList.add('is-raised');
   }
 
-  // 첫 등록 전 거치대 타일은 드래그 비활성화, 첫 등록 후 또는 보드 타일은 드래그 가능
-  if (isRack && !me.hasInitialMeld) {
-    el.draggable = false;
-    el.title = '클릭하여 첫 등록 세트로 선택/해제';
+  // 타일 드래그 및 툴팁 설정
+  if (isRack) {
+    if (!me.hasInitialMeld) {
+      el.draggable = false;
+      el.title = '클릭하여 첫 등록 세트로 선택/해제';
+    } else {
+      el.draggable = isMyTurn() && !isProcessingTurn;
+      el.title = '클릭: 새 세트 등록 선택/해제 | 드래그: 원하는 위치로 직접 이동';
+    }
   } else {
-    el.draggable = isMyTurn() && !isProcessingTurn;
-    if (isRack) {
-      el.title = '클릭: 세트 등록 선택/해제 | 드래그: 원하는 위치로 직접 이동';
+    // 보드 타일
+    if (!me.hasInitialMeld) {
+      el.draggable = false;
+      el.title = `보드 타일 (첫 등록 ${game.initialMeldThreshold}점 완료 후 사용 가능)`;
+    } else {
+      el.draggable = isMyTurn() && !isProcessingTurn;
+      el.title = '클릭: 새 세트 구성용 선택/해제 | 드래그: 다른 세트로 이동';
     }
   }
 
@@ -420,22 +484,29 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
   // 드래그와 클릭의 명확한 분리를 위한 플래그
   let isTileDragging = false;
 
-  // 거치대 타일 클릭: 언제나 위로 들어올림/원래 위치 토글
-  if (isRack) {
-    el.addEventListener('click', () => {
-      if (isTileDragging) return; // 드래그 동작 중이거나 방금 드래그가 끝난 경우 클릭 무시
-      if (!isMyTurn() || isProcessingTurn) return;
+  // 타일 클릭: 거치대 및 보드 타일 모두 위로 들어올림/원래 위치 토글
+  el.addEventListener('click', () => {
+    if (isTileDragging) return; // 드래그 동작 중이거나 방금 드래그가 끝난 경우 클릭 무시
+    if (!isMyTurn() || isProcessingTurn) return;
 
-      if (selectedRackTileIds.has(tile.id)) {
-        selectedRackTileIds.delete(tile.id);
-        el.classList.remove('is-raised');
-      } else {
-        selectedRackTileIds.add(tile.id);
-        el.classList.add('is-raised');
-      }
-      updateInitialMeldUI();
-    });
-  }
+    // 보드 타일 클릭 시 첫 등록 완료 여부 확인
+    if (!isRack && !me.hasInitialMeld) {
+      showNotification(
+        `💡 첫 등록은 자신의 거치대 타일로만 진행해야 합니다. (${game.initialMeldThreshold}점 이상 첫 등록 후 보드 타일을 조합할 수 있습니다.)`,
+        'warning'
+      );
+      return;
+    }
+
+    if (selectedTileIds.has(tile.id)) {
+      selectedTileIds.delete(tile.id);
+      el.classList.remove('is-raised');
+    } else {
+      selectedTileIds.add(tile.id);
+      el.classList.add('is-raised');
+    }
+    updateInitialMeldUI();
+  });
 
   el.addEventListener('dragstart', (e) => {
     if (!isMyTurn() || isProcessingTurn) {
@@ -444,7 +515,12 @@ function createTileElement(tile: Tile, sourceInfo: DragSource): HTMLElement {
     }
     if (isRack && !me.hasInitialMeld) {
       e.preventDefault();
-      showNotification('💡 첫 등록은 타일을 클릭하여 [등록!] 버튼으로 진행하세요.', 'info');
+      showNotification('💡 첫 등록은 타일을 클릭하여 [새 세트 만들기] 버튼으로 진행하세요.', 'info');
+      return;
+    }
+    if (!isRack && !me.hasInitialMeld) {
+      e.preventDefault();
+      showNotification('💡 첫 등록 완료 전에는 보드 타일을 움직일 수 없습니다.', 'warning');
       return;
     }
     isTileDragging = true;
@@ -520,7 +596,7 @@ rackContainerEl.addEventListener('drop', (e) => {
 function handleDropOnSet(source: DragSource, targetSetIndex: number): void {
   const me = getMyPlayer();
   if (source.location === 'rack' && !me.hasInitialMeld) {
-    showNotification('💡 첫 등록 전에는 거치대 타일을 클릭하여 [등록!] 버튼으로 등록해야 합니다.', 'warning');
+    showNotification('💡 첫 등록 전에는 거치대 타일을 클릭하여 [새 세트 만들기] 버튼으로 등록해야 합니다.', 'warning');
     return;
   }
   let tileToMove: Tile | null = null;
@@ -533,7 +609,7 @@ function handleDropOnSet(source: DragSource, targetSetIndex: number): void {
   }
 
   if (tileToMove) {
-    selectedRackTileIds.delete(tileToMove.id);
+    selectedTileIds.delete(tileToMove.id);
     game.board[targetSetIndex].push(tileToMove);
     game.cleanupEmptySets();
     renderAll();
@@ -543,7 +619,7 @@ function handleDropOnSet(source: DragSource, targetSetIndex: number): void {
 function handleDropOnNewSet(source: DragSource): void {
   const me = getMyPlayer();
   if (source.location === 'rack' && !me.hasInitialMeld) {
-    showNotification('💡 첫 등록 전에는 거치대 타일을 클릭하여 [등록!] 버튼으로 등록해야 합니다.', 'warning');
+    showNotification('💡 첫 등록 전에는 거치대 타일을 클릭하여 [새 세트 만들기] 버튼으로 등록해야 합니다.', 'warning');
     return;
   }
   let tileToMove: Tile | null = null;
@@ -556,7 +632,7 @@ function handleDropOnNewSet(source: DragSource): void {
   }
 
   if (tileToMove) {
-    selectedRackTileIds.delete(tileToMove.id);
+    selectedTileIds.delete(tileToMove.id);
     const newSet: TileSet = [tileToMove];
     game.board.push(newSet);
     game.cleanupEmptySets();
@@ -570,6 +646,7 @@ function handleDropOnRack(source: DragSource): void {
     const sourceSet = game.board[source.setIndex];
     const tileToMove = sourceSet.splice(source.tileIndex, 1)[0];
     if (tileToMove) {
+      selectedTileIds.delete(tileToMove.id);
       me.hand.push(tileToMove);
       game.cleanupEmptySets();
       renderAll();
@@ -602,24 +679,33 @@ newSetZoneEl.addEventListener('click', () => {
     return;
   }
   const me = getMyPlayer();
+  const { all: selectedTiles, rackTiles, boardTiles } = getSelectedTiles();
 
-  const selectedTiles = me.hand.filter((t) => selectedRackTileIds.has(t.id));
-
-  // 1. 거치대에서 선택된 타일이 없을 때 클릭: 친절한 안내 표시
+  // 1. 선택된 타일이 없을 때 클릭: 친절한 안내 표시
   if (selectedTiles.length === 0) {
     showNotification(
-      '💡 거치대에서 등록할 타일들을 클릭하여 선택한 후 누르거나, 타일을 여기로 드래그하세요.',
+      '💡 거치대나 보드에서 타일을 클릭하여 선택한 후 누르거나, 타일을 여기로 드래그하세요.',
       'info'
     );
     return;
   }
 
-  // 2. 선택된 타일이 있을 때 클릭: 세트 유효성 검사 및 등록 진행
+  // 2. 첫 등록 전인데 보드 타일이 포함된 경우 방지
+  if (!me.hasInitialMeld && boardTiles.length > 0) {
+    showNotification(
+      `⚠️ 첫 등록은 자신의 거치대 타일로만 진행해야 합니다. (${game.initialMeldThreshold}점 이상 첫 등록 완료 후 보드 타일 사용 가능)`,
+      'warning'
+    );
+    return;
+  }
+
+  // 3. 세트 타일 수 검사 (최소 3장 이상)
   if (selectedTiles.length < 3) {
     showNotification('⚠️ 세트는 최소 3장 이상의 타일로 구성되어야 합니다.', 'warning');
     return;
   }
 
+  // 4. 세트 유효성 검사 (런 또는 그룹)
   const validation = validateTileSet(selectedTiles);
   if (!validation.valid) {
     showNotification(
@@ -630,6 +716,7 @@ newSetZoneEl.addEventListener('click', () => {
   }
 
   const score = validation.score ?? 0;
+  const setIds = new Set(selectedTileIds);
 
   if (!me.hasInitialMeld) {
     // 첫 등록 전: 기준 점수 이상 확인 필요
@@ -641,25 +728,44 @@ newSetZoneEl.addEventListener('click', () => {
       return;
     }
 
-    const setIds = new Set(selectedRackTileIds);
+    // 거치대에서 선택된 타일 제거
     me.hand = me.hand.filter((t) => !setIds.has(t.id));
-    game.board.push(selectedTiles);
+    // 자동 정렬 후 보드에 추가
+    game.board.push(autoOrderSet(selectedTiles));
     me.hasInitialMeld = true;
-    selectedRackTileIds.clear();
+    selectedTileIds.clear();
 
     showNotification(
       `🎉 첫 등록 성공! (${validation.type === 'group' ? '그룹' : '런'}, ${score}점) 이제 자유롭게 조합하고 [턴 확정]을 누르세요.`,
       'success'
     );
   } else {
-    // 첫 등록 완료 후: 점수 제한 없이 새 세트 등록
-    const setIds = new Set(selectedRackTileIds);
+    // 첫 등록 완료 후: 거치대 및 보드에서 선택된 타일 제거 후 새 세트로 추가
+    // 1) 거치대에서 제거
     me.hand = me.hand.filter((t) => !setIds.has(t.id));
-    game.board.push(selectedTiles);
-    selectedRackTileIds.clear();
+
+    // 2) 보드의 기존 세트들에서 선택된 타일 제거
+    for (let i = 0; i < game.board.length; i++) {
+      game.board[i] = game.board[i].filter((t) => !setIds.has(t.id));
+    }
+    // 빈 세트 정리
+    game.cleanupEmptySets();
+
+    // 3) 보드에 새 세트 추가 (자동 정렬)
+    game.board.push(autoOrderSet(selectedTiles));
+    selectedTileIds.clear();
+
+    const fromRackCount = rackTiles.length;
+    const fromBoardCount = boardTiles.length;
+    let detailMsg = '';
+    if (fromRackCount > 0 && fromBoardCount > 0) {
+      detailMsg = ` (거치대 ${fromRackCount}장 + 보드 ${fromBoardCount}장)`;
+    } else if (fromBoardCount > 0) {
+      detailMsg = ` (보드 ${fromBoardCount}장 재배치)`;
+    }
 
     showNotification(
-      `✨ 새 세트 등록 성공! (${validation.type === 'group' ? '그룹' : '런'}, ${score}점)`,
+      `✨ 새 세트 등록 성공! (${validation.type === 'group' ? '그룹' : '런'}, ${score}점)${detailMsg}`,
       'success'
     );
   }
@@ -683,7 +789,7 @@ btnSortColor.addEventListener('click', () => {
 });
 
 btnReset.addEventListener('click', () => {
-  selectedRackTileIds.clear();
+  selectedTileIds.clear();
   game.resetTurn();
   renderAll();
   showNotification('이번 턴에 놓은 타일이 모두 원상복구되었습니다.', 'info');
@@ -692,6 +798,7 @@ btnReset.addEventListener('click', () => {
 // 타일 1장 뽑기 (Pass)
 btnDraw.addEventListener('click', () => {
   if (isProcessingTurn || !isMyTurn()) return;
+  selectedTileIds.clear();
 
   if (isOnlineMode) {
     if (net.isHost) {
@@ -775,6 +882,7 @@ btnEndTurn.addEventListener('click', () => {
 });
 
 function handleTurnSuccess(): void {
+  selectedTileIds.clear();
   if (game.isGameOver && game.winner) {
     showVictoryBanner(game.winner);
   } else {

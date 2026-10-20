@@ -337,7 +337,7 @@ body {
   background: rgba(15, 23, 42, 0.4);
   border: 2px dashed #334155;
   border-radius: 12px;
-  padding: clamp(8px, 1.2vh, 14px);
+  padding: clamp(14px, 2.0vh, 20px) clamp(8px, 1.2vh, 14px) clamp(8px, 1.2vh, 14px);
   display: flex;
   flex-wrap: wrap-reverse;
   align-content: flex-start;
@@ -390,6 +390,7 @@ body {
   min-width: calc(var(--tile-w) + 12px);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
+  margin-top: 8px;
 }
 
 .board-set.invalid {
