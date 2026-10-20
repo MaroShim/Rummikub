@@ -412,12 +412,26 @@ function renderRack(): void {
 
 function updateActionControls(): void {
   const canPlay = isMyTurn() && !isProcessingTurn;
+  const isModified = game.isTurnModified();
+  const tilesPlayed = game.getTilesPlayedInTurn();
+  const hasPlayedFromHand = tilesPlayed.length > 0;
 
   btnSortNum.disabled = !canPlay;
   btnSortColor.disabled = !canPlay;
-  btnReset.disabled = !canPlay;
-  btnDraw.disabled = !canPlay;
-  btnEndTurn.disabled = !canPlay;
+  btnReset.disabled = !canPlay || !isModified;
+
+  // 뽑기와 턴 확정은 상호 배타적이므로 같은 자리에 둘 중 하나만 동적으로 표시
+  if (hasPlayedFromHand) {
+    // 이번 턴에 손패에서 타일을 최소 1장 이상 내려놓은 경우: '턴 확정' 표시
+    btnDraw.style.display = 'none';
+    btnEndTurn.style.display = 'inline-flex';
+    btnEndTurn.disabled = !canPlay;
+  } else {
+    // 손패에서 타일을 아직 내려놓지 않은 경우: '타일 뽑기 (Pass)' 표시
+    btnEndTurn.style.display = 'none';
+    btnDraw.style.display = 'inline-flex';
+    btnDraw.disabled = !canPlay;
+  }
 }
 
 // ================== 타일 DOM 생성 ==================

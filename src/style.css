@@ -854,6 +854,11 @@ body.dark-mode .board-wrapper {
   font-weight: 700;
 }
 
+#btn-draw, #btn-end-turn {
+  min-width: clamp(100px, 9vw, 136px);
+  justify-content: center;
+}
+
 .btn-primary { background: #2563eb; color: white; }
 .btn-primary:hover { background: #1d4ed8; }
 

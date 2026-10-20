@@ -113,6 +113,22 @@ export class RummikubGame {
   }
 
   /**
+   * 이번 턴에 보드나 손패가 변경되었는지 확인
+   */
+  isTurnModified(): boolean {
+    if (!this.snapshot) return false;
+    const current = this.getCurrentPlayer();
+    if (current.hand.length !== this.snapshot.hand.length) return true;
+    const snapshotHandIds = new Set(this.snapshot.hand.map((t) => t.id));
+    if (current.hand.some((t) => !snapshotHandIds.has(t.id))) return true;
+
+    // 보드 세트 구성 비교
+    const currentBoardStr = this.board.map((s) => s.map((t) => t.id).join(',')).join('|');
+    const snapshotBoardStr = this.snapshot.board.map((s) => s.map((t) => t.id).join(',')).join('|');
+    return currentBoardStr !== snapshotBoardStr;
+  }
+
+  /**
    * 보드의 빈 세트 정리
    */
   cleanupEmptySets(): void {
@@ -124,8 +140,7 @@ export class RummikubGame {
    */
   drawTile(): { success: boolean; tile?: Tile; error?: string } {
     // 만약 이미 보드를 건드렸거나 타일을 냈다면 원상복구 후 뽑아야 함
-    const playedTiles = this.getTilesPlayedInTurn();
-    if (playedTiles.length > 0) {
+    if (this.isTurnModified()) {
       this.resetTurn();
     }
 
